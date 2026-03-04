@@ -184,7 +184,7 @@ def _parse_model(data: dict) -> ModelInfo | None:
     )
 
 
-async def fetch_models(limit: int = 200) -> list[ModelInfo]:
+async def fetch_models(limit: int = 300) -> list[ModelInfo]:
     """Fetch popular text-generation models from HuggingFace Hub."""
     models: list[ModelInfo] = []
 
@@ -227,6 +227,48 @@ async def fetch_models(limit: int = 200) -> list[ModelInfo]:
                 if model:
                     models.append(model)
                     seen_ids.add(model.id)
+
+        # Fetch recently updated GGUF models (catch new releases)
+        recent_params = {
+            "pipeline_tag": "text-generation",
+            "filter": "gguf",
+            "sort": "lastModified",
+            "direction": "-1",
+            "limit": str(limit),
+            "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings"],
+        }
+        logger.debug("Fetching recent GGUF models from HF API")
+        resp = await client.get(f"{HF_API_BASE}/models", params=recent_params)
+        resp.raise_for_status()
+        recent_data_list = resp.json()
+
+        for data in recent_data_list:
+            if data.get("id") not in seen_ids:
+                model = _parse_model(data)
+                if model:
+                    models.append(model)
+                    seen_ids.add(model.id)
+
+        # Fetch multimodal models (e.g. Qwen3.5 is image-text-to-text)
+        for pipeline_tag in ("image-text-to-text",):
+            mm_params = {
+                "pipeline_tag": pipeline_tag,
+                "sort": "downloads",
+                "direction": "-1",
+                "limit": str(limit),
+                "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings"],
+            }
+            logger.debug(f"Fetching {pipeline_tag} models from HF API")
+            resp = await client.get(f"{HF_API_BASE}/models", params=mm_params)
+            resp.raise_for_status()
+            mm_data_list = resp.json()
+
+            for data in mm_data_list:
+                if data.get("id") not in seen_ids:
+                    model = _parse_model(data)
+                    if model:
+                        models.append(model)
+                        seen_ids.add(model.id)
 
     logger.debug(f"Fetched {len(models)} models total")
     return models
