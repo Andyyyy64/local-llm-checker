@@ -9,7 +9,7 @@ from typing import Optional
 import typer
 from rich.console import Console
 
-from local_llm_checker.hardware.types import HardwareInfo
+from whatllm.hardware.types import HardwareInfo
 
 app = typer.Typer(
     name="llm-checker",
@@ -44,7 +44,7 @@ def _apply_gpu_overrides(
     if cpu_only:
         hardware.gpus = []
     elif gpu:
-        from local_llm_checker.hardware.gpu_simulator import create_synthetic_gpu
+        from whatllm.hardware.gpu_simulator import create_synthetic_gpu
 
         try:
             hardware.gpus = [create_synthetic_gpu(gpu, vram)]
@@ -75,17 +75,17 @@ def main(
 
     from rich.progress import Progress, SpinnerColumn, TextColumn
 
-    from local_llm_checker.engine.ranker import rank_models
-    from local_llm_checker.hardware.detector import detect_hardware
-    from local_llm_checker.models.benchmark import (
+    from whatllm.engine.ranker import rank_models
+    from whatllm.hardware.detector import detect_hardware
+    from whatllm.models.benchmark import (
         fetch_benchmark_scores,
         load_benchmark_cache,
         save_benchmark_cache,
     )
-    from local_llm_checker.models.cache import load_cache, save_cache
-    from local_llm_checker.models.fetcher import dicts_to_models, fetch_models, models_to_dicts
-    from local_llm_checker.models.grouper import group_models
-    from local_llm_checker.output.display import display_hardware, display_json, display_ranking
+    from whatllm.models.cache import load_cache, save_cache
+    from whatllm.models.fetcher import dicts_to_models, fetch_models, models_to_dicts
+    from whatllm.models.grouper import group_models
+    from whatllm.output.display import display_hardware, display_json, display_ranking
 
     with Progress(
         SpinnerColumn(),
@@ -169,8 +169,8 @@ def hardware(
 
     from rich.progress import Progress, SpinnerColumn, TextColumn
 
-    from local_llm_checker.hardware.detector import detect_hardware
-    from local_llm_checker.output.display import display_hardware
+    from whatllm.hardware.detector import detect_hardware
+    from whatllm.output.display import display_hardware
 
     with Progress(
         SpinnerColumn(),

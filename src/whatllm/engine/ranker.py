@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import math
 
-from local_llm_checker.constants import QUANT_PREFERENCE_ORDER, QUANT_QUALITY_PENALTY
-from local_llm_checker.engine.compatibility import check_compatibility
-from local_llm_checker.engine.performance import estimate_tok_per_sec
-from local_llm_checker.engine.types import CompatibilityResult
-from local_llm_checker.hardware.types import HardwareInfo
-from local_llm_checker.models.benchmark import build_score_index, lookup_benchmark
-from local_llm_checker.models.types import GGUFVariant, ModelInfo
+from whatllm.constants import QUANT_PREFERENCE_ORDER, QUANT_QUALITY_PENALTY
+from whatllm.engine.compatibility import check_compatibility
+from whatllm.engine.performance import estimate_tok_per_sec
+from whatllm.engine.types import CompatibilityResult
+from whatllm.hardware.types import HardwareInfo
+from whatllm.models.benchmark import build_score_index, lookup_benchmark
+from whatllm.models.types import GGUFVariant, ModelInfo
 
 
 def _pick_best_variant(

@@ -9,7 +9,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-CACHE_DIR = Path.home() / ".cache" / "local-llm-checker"
+CACHE_DIR = Path.home() / ".cache" / "whatllm"
 CACHE_FILE = CACHE_DIR / "models.json"
 DEFAULT_TTL_SECONDS = 6 * 3600  # 6 hours
 

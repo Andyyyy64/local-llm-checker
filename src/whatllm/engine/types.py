@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from local_llm_checker.models.types import GGUFVariant, ModelInfo
+from whatllm.models.types import GGUFVariant, ModelInfo
 
 
 @dataclass

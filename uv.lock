@@ -134,48 +134,6 @@ wheels = [
 ]
 
 [[package]]
-name = "local-llm-checker"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "dbgpu", extra = ["fuzz"] },
-    { name = "httpx" },
-    { name = "psutil" },
-    { name = "rich" },
-    { name = "typer" },
-]
-
-[package.optional-dependencies]
-nvidia = [
-    { name = "nvidia-ml-py" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "nvidia-ml-py" },
-    { name = "pyarrow" },
-    { name = "pytest" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "dbgpu", extras = ["fuzz"], specifier = ">=1.0" },
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "nvidia-ml-py", marker = "extra == 'nvidia'", specifier = ">=12.0" },
-    { name = "psutil", specifier = ">=5.9" },
-    { name = "rich", specifier = ">=13.0" },
-    { name = "typer", specifier = ">=0.9" },
-]
-provides-extras = ["nvidia"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "nvidia-ml-py", specifier = ">=12.0" },
-    { name = "pyarrow", specifier = ">=23.0.1" },
-    { name = "pytest", specifier = ">=8.0" },
-]
-
-[[package]]
 name = "markdown-it-py"
 version = "4.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -585,4 +543,46 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/55/e3/70399cb7dd41c10ac53367ae42139cf4b1ca5f36bb3dc6c9d33acdb43655/typing_inspection-0.4.2.tar.gz", hash = "sha256:ba561c48a67c5958007083d386c3295464928b01faa735ab8547c5692e87f464", size = 75949, upload-time = "2025-10-01T02:14:41.687Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/dc/9b/47798a6c91d8bdb567fe2698fe81e0c6b7cb7ef4d13da4114b41d239f65d/typing_inspection-0.4.2-py3-none-any.whl", hash = "sha256:4ed1cacbdc298c220f1bd249ed5287caa16f34d44ef4e9c3d0cbad5b521545e7", size = 14611, upload-time = "2025-10-01T02:14:40.154Z" },
+]
+
+[[package]]
+name = "whatllm"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "dbgpu", extra = ["fuzz"] },
+    { name = "httpx" },
+    { name = "psutil" },
+    { name = "rich" },
+    { name = "typer" },
+]
+
+[package.optional-dependencies]
+nvidia = [
+    { name = "nvidia-ml-py" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "nvidia-ml-py" },
+    { name = "pyarrow" },
+    { name = "pytest" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "dbgpu", extras = ["fuzz"], specifier = ">=1.0" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "nvidia-ml-py", marker = "extra == 'nvidia'", specifier = ">=12.0" },
+    { name = "psutil", specifier = ">=5.9" },
+    { name = "rich", specifier = ">=13.0" },
+    { name = "typer", specifier = ">=0.9" },
+]
+provides-extras = ["nvidia"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "nvidia-ml-py", specifier = ">=12.0" },
+    { name = "pyarrow", specifier = ">=23.0.1" },
+    { name = "pytest", specifier = ">=8.0" },
 ]

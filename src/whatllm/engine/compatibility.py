@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from local_llm_checker.constants import MIN_COMPUTE_CAPABILITY_OLLAMA
-from local_llm_checker.engine.types import CompatibilityResult
-from local_llm_checker.engine.vram import estimate_vram
-from local_llm_checker.hardware.types import GPUInfo, HardwareInfo
-from local_llm_checker.models.types import GGUFVariant, ModelInfo
+from whatllm.constants import MIN_COMPUTE_CAPABILITY_OLLAMA
+from whatllm.engine.types import CompatibilityResult
+from whatllm.engine.vram import estimate_vram
+from whatllm.hardware.types import GPUInfo, HardwareInfo
+from whatllm.models.types import GGUFVariant, ModelInfo
 
 
 def check_compatibility(

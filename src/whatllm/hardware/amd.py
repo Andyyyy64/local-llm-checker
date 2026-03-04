@@ -6,8 +6,8 @@ import json
 import logging
 import subprocess
 
-from local_llm_checker.constants import GPU_BANDWIDTH
-from local_llm_checker.hardware.types import GPUInfo
+from whatllm.constants import GPU_BANDWIDTH
+from whatllm.hardware.types import GPUInfo
 
 logger = logging.getLogger(__name__)
 

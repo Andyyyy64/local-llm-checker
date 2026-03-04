@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from local_llm_checker.constants import FRAMEWORK_OVERHEAD_BYTES
-from local_llm_checker.models.types import GGUFVariant, ModelInfo
+from whatllm.constants import FRAMEWORK_OVERHEAD_BYTES
+from whatllm.models.types import GGUFVariant, ModelInfo
 
 
 def estimate_kv_cache(model: ModelInfo, context_length: int) -> int:

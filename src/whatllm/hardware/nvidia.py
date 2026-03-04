@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import logging
 
-from local_llm_checker.constants import GPU_BANDWIDTH, NVIDIA_COMPUTE_CAPABILITY
-from local_llm_checker.hardware.types import GPUInfo
+from whatllm.constants import GPU_BANDWIDTH, NVIDIA_COMPUTE_CAPABILITY
+from whatllm.hardware.types import GPUInfo
 
 logger = logging.getLogger(__name__)
 

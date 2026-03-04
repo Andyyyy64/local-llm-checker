@@ -1,4 +1,4 @@
-# llm-checker
+# whatllm
 
 **Find the best local LLM that actually runs on your hardware.**
 
@@ -7,7 +7,7 @@ Auto-detects your GPU/CPU/RAM and ranks the top models from HuggingFace that fit
 [日本語版はこちら](docs/README.ja.md)
 
 ```
-$ llm-checker
+$ whatllm
 
 ╭─────────────── Hardware Info ───────────────╮
 │ GPU 0: NVIDIA GeForce RTX 4060 — 8.0 GB    │
@@ -27,19 +27,19 @@ $ llm-checker
 ### pipx (recommended)
 
 ```bash
-pipx install git+https://github.com/yourname/local-llm-checker.git
+pipx install whatllm
 ```
 
 ### pip
 
 ```bash
-pip install git+https://github.com/yourname/local-llm-checker.git
+pip install whatllm
 ```
 
 ### With NVIDIA GPU detection
 
 ```bash
-pipx install "local-llm-checker[nvidia] @ git+https://github.com/yourname/local-llm-checker.git"
+pipx install "whatllm[nvidia]"
 ```
 
 ### Development
@@ -48,35 +48,35 @@ pipx install "local-llm-checker[nvidia] @ git+https://github.com/yourname/local-
 git clone https://github.com/yourname/local-llm-checker.git
 cd local-llm-checker
 uv sync --dev
-uv run llm-checker
+uv run whatllm
 ```
 
 ## Usage
 
 ```bash
 # Auto-detect hardware and show best models
-llm-checker
+whatllm
 
 # Simulate a GPU (e.g. planning a purchase)
-llm-checker --gpu "RTX 4090"
-llm-checker --gpu "RTX 5090"
+whatllm --gpu "RTX 4090"
+whatllm --gpu "RTX 5090"
 
 # CPU-only mode
-llm-checker --cpu-only
+whatllm --cpu-only
 
 # More results / filters
-llm-checker --top 20
-llm-checker --quant Q4_K_M
-llm-checker --min-speed 30
+whatllm --top 20
+whatllm --quant Q4_K_M
+whatllm --min-speed 30
 
 # JSON output
-llm-checker --json
+whatllm --json
 
 # Force refresh (ignore cache)
-llm-checker --refresh
+whatllm --refresh
 
 # Show hardware info only
-llm-checker hardware
+whatllm hardware
 ```
 
 ## Scoring
@@ -101,7 +101,7 @@ Score markers:
 
 1. Fetches ~900 popular models from **HuggingFace API** (text-generation, GGUF, multimodal)
 2. Fetches benchmark scores from **Chatbot Arena ELO** and **Open LLM Leaderboard**, normalized to 0-100
-3. All data cached for 24 hours at `~/.cache/local-llm-checker/`
+3. All data cached for 24 hours at `~/.cache/whatllm/`
 
 ### Ranking engine
 
@@ -115,7 +115,7 @@ Score markers:
 ### Project structure
 
 ```
-local_llm_checker/
+src/whatllm/
 ├── cli.py              # Typer CLI entry point
 ├── constants.py        # GPU bandwidth tables, quantization constants
 ├── hardware/           # Hardware detection (NVIDIA, AMD, Apple, CPU, RAM)

@@ -5,12 +5,12 @@ from __future__ import annotations
 import logging
 import platform
 
-from local_llm_checker.hardware.amd import detect_amd_gpus
-from local_llm_checker.hardware.apple import detect_apple_gpu
-from local_llm_checker.hardware.cpu import detect_avx_support, detect_cpu_cores, detect_cpu_name
-from local_llm_checker.hardware.memory import detect_disk_free_bytes, detect_ram_bytes
-from local_llm_checker.hardware.nvidia import detect_nvidia_gpus
-from local_llm_checker.hardware.types import HardwareInfo
+from whatllm.hardware.amd import detect_amd_gpus
+from whatllm.hardware.apple import detect_apple_gpu
+from whatllm.hardware.cpu import detect_avx_support, detect_cpu_cores, detect_cpu_name
+from whatllm.hardware.memory import detect_disk_free_bytes, detect_ram_bytes
+from whatllm.hardware.nvidia import detect_nvidia_gpus
+from whatllm.hardware.types import HardwareInfo
 
 logger = logging.getLogger(__name__)
 

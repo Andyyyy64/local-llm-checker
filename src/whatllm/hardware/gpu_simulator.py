@@ -9,8 +9,8 @@ from __future__ import annotations
 import logging
 import re
 
-from local_llm_checker.constants import _GiB
-from local_llm_checker.hardware.types import GPUInfo
+from whatllm.constants import _GiB
+from whatllm.hardware.types import GPUInfo
 
 logger = logging.getLogger(__name__)
 
