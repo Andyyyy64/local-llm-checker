@@ -28,4 +28,8 @@ packages = ["local_llm_checker"]
 testpaths = ["tests"]
 
 [dependency-groups]
-dev = ["pytest>=8.0", "nvidia-ml-py>=12.0"]
+dev = [
+    "pytest>=8.0",
+ "nvidia-ml-py>=12.0",
+ "pyarrow>=23.0.1",
+]
