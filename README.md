@@ -6,21 +6,7 @@ Auto-detects your GPU/CPU/RAM and ranks the top models from HuggingFace that fit
 
 [日本語版はこちら](docs/README.ja.md)
 
-```
-$ whichllm
-
-╭─────────────── Hardware Info ───────────────╮
-│ GPU 0: NVIDIA GeForce RTX 4060 — 8.0 GB    │
-│ CPU: Intel i7-11700K — 4 cores (AVX2)       │
-│ RAM: 23.5 GB                                │
-╰─────────────────────────────────────────────╯
-
-  #  Model                         Quant    VRAM   Speed    Score
-  1  gemma-3-12b-it-GGUF           Q4_K_M  8.0 GB  21 tok/s  63.1
-  2  Qwen2.5-7B-Instruct-GGUF     Q4_K_M  5.5 GB  32 tok/s  61.3
-  3  gemma-2-9b-it-GGUF            Q4_K_M  6.5 GB  26 tok/s  61.0
-  ...
-```
+![demo](assets/demo.png)
 
 ## Install
 
@@ -36,17 +22,11 @@ pipx install whichllm
 pip install whichllm
 ```
 
-### With NVIDIA GPU detection
-
-```bash
-pipx install "whichllm[nvidia]"
-```
-
 ### Development
 
 ```bash
-git clone https://github.com/yourname/local-llm-checker.git
-cd local-llm-checker
+git clone https://github.com/Andyyyy64/whichllm.git
+cd whichllm
 uv sync --dev
 uv run whichllm
 ```
@@ -137,7 +117,7 @@ src/whichllm/
 ## Requirements
 
 - Python 3.11+
-- NVIDIA GPU detection requires `nvidia-ml-py` (install with `[nvidia]` extra)
+- NVIDIA GPU detection via `nvidia-ml-py` (included by default)
 - AMD / Apple Silicon detected automatically
 
 ## License
