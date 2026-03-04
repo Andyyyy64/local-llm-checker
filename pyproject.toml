@@ -19,7 +19,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/local_llm_checker"]
+packages = ["local_llm_checker"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
