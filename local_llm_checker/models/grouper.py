@@ -13,7 +13,9 @@ def _normalize_name(model_id: str) -> str:
     # Strip org prefix (e.g. "bartowski/Meta-Llama-3.1" -> "meta-llama-3.1")
     if "/" in name:
         name = name.split("/", 1)[1]
-    # Remove common suffixes
+    # Strip common org prefixes in model names (e.g. "qwen_qwen3-8b" -> "qwen3-8b")
+    name = re.sub(r"^(qwen_|meta-llama_|google_)", "", name)
+    # Remove common suffixes (applied repeatedly to handle stacked suffixes)
     suffixes = [
         r"-gguf$",
         r"-gptq$",
@@ -22,12 +24,37 @@ def _normalize_name(model_id: str) -> str:
         r"-chat$",
         r"-it$",
         r"-hf$",
+        r"-fp8$",
         r"-fp16$",
         r"-bf16$",
+        r"-nvfp4$",
         r"-\d+bit$",
+        r"-\d{4}$",  # date suffixes like -2507, -2503
     ]
-    for suffix in suffixes:
-        name = re.sub(suffix, "", name)
+    for _ in range(3):  # multiple passes to strip stacked suffixes
+        prev = name
+        for suffix in suffixes:
+            name = re.sub(suffix, "", name)
+        if name == prev:
+            break
+
+    # Strip version-before-size: mistral-small-3.2-24b -> mistral-small-24b
+    # This catches patterns like MODEL-MAJOR.MINOR-SIZEb where the version
+    # is a separate segment (preceded by '-') before the size suffix.
+    # Does NOT match qwen3.5-27b because '3.5' is glued to 'qwen' without '-'.
+    name = re.sub(r"-\d+\.\d+(-\d+(?:\.\d+)?b(?:-a\d+b)?)$", r"\1", name)
+
+    # Split series name from size suffix, strip minor version from series only.
+    # Merges qwen3.5-27b + qwen3-30b-a3b naming variants (different sizes stay separate).
+    m = re.match(r"^(.+?)-(\d+(?:\.\d+)?b(?:-a\d+b)?)$", name)
+    if m:
+        series, size = m.group(1), m.group(2)
+        series = re.sub(r"(\d+)\.\d+$", r"\1", series)
+        name = f"{series}-{size}"
+    else:
+        # No size suffix (e.g. deepseek-v3.2) — strip minor version directly
+        name = re.sub(r"(\d+)\.\d+$", r"\1", name)
+
     return name
 
 
@@ -50,11 +77,19 @@ def group_models(models: list[ModelInfo]) -> list[ModelFamily]:
         key = _normalize_name(model.id)
         name_groups.setdefault(key, []).append(model)
 
-    # Also try to merge base_model groups with ungrouped via name matching
-    for key, group in list(base_model_groups.items()):
+    # Merge base_model groups that share the same normalized name
+    merged_base: dict[str, list[ModelInfo]] = {}
+    for key, group in base_model_groups.items():
         norm_key = _normalize_name(key)
+        merged_base.setdefault(norm_key, []).extend(group)
+
+    # Also merge with ungrouped via name matching
+    for norm_key, group in list(merged_base.items()):
         if norm_key in name_groups:
             group.extend(name_groups.pop(norm_key))
+
+    # Replace base_model_groups with merged version
+    base_model_groups = merged_base
 
     # Build families
     families: list[ModelFamily] = []
