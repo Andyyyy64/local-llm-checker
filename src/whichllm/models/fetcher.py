@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 
@@ -13,6 +14,17 @@ from whichllm.models.types import GGUFVariant, ModelInfo
 logger = logging.getLogger(__name__)
 
 HF_API_BASE = "https://huggingface.co/api"
+
+
+def _extract_published_at(data: dict) -> str | None:
+    """APIレスポンスから公開日時候補を取り出す。"""
+    created = data.get("createdAt")
+    if isinstance(created, str) and created:
+        return created
+    modified = data.get("lastModified")
+    if isinstance(modified, str) and modified:
+        return modified
+    return None
 
 
 def _extract_size_hint_from_id(model_id: str | None) -> int | None:
@@ -232,6 +244,7 @@ def _parse_model(data: dict) -> ModelInfo | None:
         is_moe=is_moe,
         context_length=context_length,
         license=card_data.get("license"),
+        published_at=_extract_published_at(data),
         downloads=data.get("downloads", 0),
         likes=data.get("likes", 0),
         gguf_variants=gguf_variants,
@@ -344,6 +357,7 @@ def models_to_dicts(models: list[ModelInfo]) -> list[dict]:
                 "is_moe": m.is_moe,
                 "context_length": m.context_length,
                 "license": m.license,
+                "published_at": m.published_at,
                 "downloads": m.downloads,
                 "likes": m.likes,
                 "gguf_variants": [
@@ -382,6 +396,7 @@ def dicts_to_models(data: list[dict]) -> list[ModelInfo]:
                 is_moe=d.get("is_moe", False),
                 context_length=d.get("context_length"),
                 license=d.get("license"),
+                published_at=d.get("published_at"),
                 downloads=d.get("downloads", 0),
                 likes=d.get("likes", 0),
                 gguf_variants=[
@@ -397,3 +412,37 @@ def dicts_to_models(data: list[dict]) -> list[ModelInfo]:
             )
         )
     return models
+
+
+async def fetch_model_published_at(model_ids: list[str]) -> dict[str, str]:
+    """Fetch published timestamps for specific model IDs."""
+    unique_ids = sorted({m for m in model_ids if m})
+    if not unique_ids:
+        return {}
+
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        tasks = [
+            client.get(
+                f"{HF_API_BASE}/models/{model_id}",
+                params={"expand[]": ["createdAt", "lastModified"]},
+            )
+            for model_id in unique_ids
+        ]
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
+
+    result: dict[str, str] = {}
+    for model_id, resp in zip(unique_ids, responses, strict=False):
+        if isinstance(resp, Exception):
+            logger.debug("Failed to fetch model detail for %s: %s", model_id, resp)
+            continue
+        if resp.status_code >= 400:
+            logger.debug("Failed to fetch model detail for %s: HTTP %s", model_id, resp.status_code)
+            continue
+        try:
+            data = resp.json()
+        except ValueError:
+            continue
+        published_at = _extract_published_at(data)
+        if published_at:
+            result[model_id] = published_at
+    return result
