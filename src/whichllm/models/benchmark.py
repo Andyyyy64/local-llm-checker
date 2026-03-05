@@ -5,8 +5,11 @@ from __future__ import annotations
 import io
 import json
 import logging
+import math
 import re
+import statistics
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
@@ -75,6 +78,15 @@ _ARENA_ORG_TO_HF: dict[str, list[str]] = {
     "LMSYS": ["lmsys"],
     "OpenChat": ["openchat"],
 }
+
+
+@dataclass(frozen=True)
+class BenchmarkEvidence:
+    """Benchmark evidence with confidence."""
+
+    score: float | None
+    confidence: float
+    source: str  # direct | variant | base_model | line_interp | none
 
 
 def load_benchmark_cache() -> dict[str, float] | None:
@@ -277,6 +289,18 @@ def fetch_benchmark_scores() -> dict[str, float]:
     return combined
 
 
+def _extract_params_b_from_id(model_id: str) -> float | None:
+    """Extract parameter size in billions from model ID text."""
+    lower = model_id.lower()
+    matches = re.findall(r"(\d+(?:\.\d+)?)b(?:-a\d+(?:\.\d+)?b)?", lower)
+    if not matches:
+        return None
+    try:
+        return max(float(v) for v in matches)
+    except ValueError:
+        return None
+
+
 def _extract_model_lines(model_id: str) -> list[str]:
     """Extract model line candidates from a model ID (most specific first).
 
@@ -315,6 +339,41 @@ def _extract_model_lines(model_id: str) -> list[str]:
     return lines
 
 
+def _interpolate_line_score(
+    bucket: list[tuple[float | None, float]],
+    params_b: float | None,
+) -> tuple[float, float]:
+    """Interpolate score from same-model-line benchmarks with confidence."""
+    if not bucket:
+        return 0.0, 0.0
+
+    valid = [(p, s) for p, s in bucket if p is not None]
+    if not valid:
+        vals = [s for _, s in bucket]
+        return statistics.median(vals), 0.25
+
+    if params_b is None or params_b <= 0:
+        vals = [s for _, s in valid]
+        return statistics.median(vals), 0.30
+
+    weighted: list[tuple[float, float, float]] = []
+    for p, s in valid:
+        assert p is not None
+        dist = abs(math.log2(max(params_b, 0.1) / max(p, 0.1)))
+        w = 1.0 / (0.35 + dist)
+        weighted.append((w, s, dist))
+
+    score = sum(w * s for w, s, _ in weighted) / sum(w for w, _, _ in weighted)
+    nearest = min(d for _, _, d in weighted)
+    if nearest <= 0.15:
+        conf = 0.45
+    elif nearest <= 0.50:
+        conf = 0.34
+    else:
+        conf = 0.26
+    return score, conf
+
+
 def build_score_index(
     scores: dict[str, float],
 ) -> tuple[dict[str, float], dict[str, float]]:
@@ -342,6 +401,21 @@ def build_score_index(
                 line_index[line] = val
 
     return ci_index, line_index
+
+
+def build_line_bucket_index(
+    scores: dict[str, float],
+) -> dict[str, list[tuple[float | None, float]]]:
+    """Build line -> [(params_b, score)] index for size-aware interpolation."""
+    buckets: dict[str, list[tuple[float | None, float]]] = {}
+    for key, val in scores.items():
+        params_b = _extract_params_b_from_id(key)
+        lines = _extract_model_lines(key)
+        if not lines and "/" in key:
+            lines = [key.lower()]
+        for line in lines:
+            buckets.setdefault(line, []).append((params_b, val))
+    return buckets
 
 
 def _try_lookup(candidate: str, scores: dict[str, float], ci_index: dict[str, float]) -> float | None:
@@ -384,47 +458,62 @@ def lookup_benchmark(
     ci_index: dict[str, float] | None = None,
     line_index: dict[str, float] | None = None,
 ) -> tuple[float, bool] | None:
-    """Look up benchmark score for a model.
+    """Backward-compatible benchmark lookup helper."""
+    evidence = lookup_benchmark_evidence(
+        model_id,
+        base_model,
+        scores,
+        ci_index=ci_index,
+        line_index=line_index,
+    )
+    if evidence.score is None:
+        return None
+    return evidence.score, evidence.source == "direct"
 
-    Tries model_id first, then base_model, then common name variants.
-    Falls back to model line (series) match for family-level data.
-    Uses case-insensitive matching via index for Arena name mismatches.
 
-    Returns (normalized_score, is_direct) or None.
-    is_direct=True means the score was matched to this specific model ID
-    (including common model_id variants).
-    is_direct=False means the score was inherited from base_model or model line.
-    """
+def lookup_benchmark_evidence(
+    model_id: str,
+    base_model: str | None,
+    scores: dict[str, float],
+    ci_index: dict[str, float] | None = None,
+    line_index: dict[str, float] | None = None,
+    line_bucket_index: dict[str, list[tuple[float | None, float]]] | None = None,
+) -> BenchmarkEvidence:
+    """Look up benchmark evidence with confidence."""
     if ci_index is None or line_index is None:
         ci_index, line_index = build_score_index(scores)
+    if line_bucket_index is None:
+        line_bucket_index = build_line_bucket_index(scores)
 
     # Only exact model_id match is considered direct.
     # Derived candidates (suffix-stripped, instruct-toggled) are inherited.
     direct_result = _try_lookup(model_id, scores, ci_index)
     if direct_result is not None:
-        return direct_result, True
+        return BenchmarkEvidence(score=direct_result, confidence=1.0, source="direct")
 
     # Try model_id-derived variants (inherited)
     for candidate in _generate_candidates(model_id)[1:]:
         result = _try_lookup(candidate, scores, ci_index)
         if result is not None:
-            return result, False
+            return BenchmarkEvidence(score=result, confidence=0.55, source="variant")
 
     # Try base_model and its variants
     if base_model:
         for candidate in _generate_candidates(base_model):
             result = _try_lookup(candidate, scores, ci_index)
             if result is not None:
-                # base_model inheritance is useful but not a direct match
-                return result, False
+                return BenchmarkEvidence(score=result, confidence=0.60, source="base_model")
 
-    # Fallback: model line (series) lookup
-    # E.g., Qwen3-8B has no direct score, but Qwen3-32B does → use line score
-    # Tries specific lines first (qwen/qwen3.5), then broader (qwen/qwen3)
+    # Fallback: size-aware interpolation within model line.
+    size_hint = _extract_params_b_from_id(model_id) or _extract_params_b_from_id(base_model or "")
     for mid in (model_id, base_model):
         if mid:
             for line in _extract_model_lines(mid):
+                if line in line_bucket_index:
+                    score, conf = _interpolate_line_score(line_bucket_index[line], size_hint)
+                    if score > 0:
+                        return BenchmarkEvidence(score=score, confidence=conf, source="line_interp")
                 if line in line_index:
-                    return line_index[line], False
+                    return BenchmarkEvidence(score=line_index[line], confidence=0.22, source="line_interp")
 
-    return None
+    return BenchmarkEvidence(score=None, confidence=0.0, source="none")
