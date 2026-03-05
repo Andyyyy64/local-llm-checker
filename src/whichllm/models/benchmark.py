@@ -391,24 +391,32 @@ def lookup_benchmark(
     Uses case-insensitive matching via index for Arena name mismatches.
 
     Returns (normalized_score, is_direct) or None.
-    is_direct=True means the score was matched to this specific model.
-    is_direct=False means the score was inherited from the model's family line.
+    is_direct=True means the score was matched to this specific model ID
+    (including common model_id variants).
+    is_direct=False means the score was inherited from base_model or model line.
     """
     if ci_index is None or line_index is None:
         ci_index, line_index = build_score_index(scores)
 
-    # Try model_id and its variants
-    for candidate in _generate_candidates(model_id):
+    # Only exact model_id match is considered direct.
+    # Derived candidates (suffix-stripped, instruct-toggled) are inherited.
+    direct_result = _try_lookup(model_id, scores, ci_index)
+    if direct_result is not None:
+        return direct_result, True
+
+    # Try model_id-derived variants (inherited)
+    for candidate in _generate_candidates(model_id)[1:]:
         result = _try_lookup(candidate, scores, ci_index)
         if result is not None:
-            return result, True
+            return result, False
 
     # Try base_model and its variants
     if base_model:
         for candidate in _generate_candidates(base_model):
             result = _try_lookup(candidate, scores, ci_index)
             if result is not None:
-                return result, True
+                # base_model inheritance is useful but not a direct match
+                return result, False
 
     # Fallback: model line (series) lookup
     # E.g., Qwen3-8B has no direct score, but Qwen3-32B does → use line score
