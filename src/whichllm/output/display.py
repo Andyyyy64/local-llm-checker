@@ -122,9 +122,12 @@ def display_ranking(results: list[CompatibilityResult], *, has_gpu: bool = True)
 
         license_str = r.model.license or "—"
 
+        hf_url = f"https://huggingface.co/{r.model.id}"
+        model_link = f"[link={hf_url}]{r.model.id}[/link]"
+
         table.add_row(
             str(i),
-            r.model.id,
+            model_link,
             params_str,
             quant,
             vram_str,
