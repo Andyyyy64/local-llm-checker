@@ -23,6 +23,16 @@ _MANUFACTURER_TO_VENDOR: dict[str, str] = {
 }
 
 _MANUFACTURER_PREFIXES = ["GeForce ", "Radeon ", "Arc ", "NVIDIA ", "AMD "]
+_COMMON_GPU_ALIASES: dict[str, list[str]] = {
+    "a10080gb": [
+        "NVIDIA A100 PCIe 80 GB",
+        "NVIDIA A100 SXM4 80 GB",
+    ],
+    "h10080gb": [
+        "NVIDIA H100 PCIe 80 GB",
+        "NVIDIA H100 SXM5 80 GB",
+    ],
+}
 
 
 def _normalize_gpu_name(name: str) -> str:
@@ -65,7 +75,11 @@ def _lookup_dbgpu(name: str):
 
     # Normalize input: "GTX1080" → "GTX 1080"
     normalized = _normalize_gpu_name(name)
+    compact = re.sub(r"\s+", "", normalized.lower())
     names_to_try = [name] if normalized == name else [name, normalized]
+    alias_hits = _COMMON_GPU_ALIASES.get(compact)
+    if alias_hits:
+        names_to_try.extend(alias_hits)
 
     for n in names_to_try:
         # 1) Exact key lookup

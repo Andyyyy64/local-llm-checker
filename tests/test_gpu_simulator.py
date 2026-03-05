@@ -41,6 +41,18 @@ class TestKnownGPULookup:
         assert gpu.vendor == "nvidia"
         assert gpu.compute_capability == (6, 1)
 
+    def test_a100_80gb_alias(self):
+        gpu = create_synthetic_gpu("A100 80GB")
+        assert gpu.vram_bytes == 80 * _GiB
+        assert gpu.vendor == "nvidia"
+        assert "(simulated)" in gpu.name
+
+    def test_h100_80gb_alias(self):
+        gpu = create_synthetic_gpu("H100 80GB")
+        assert gpu.vram_bytes == 80 * _GiB
+        assert gpu.vendor == "nvidia"
+        assert "(simulated)" in gpu.name
+
 
 class TestVRAMOverride:
     def test_override_known_gpu(self):
