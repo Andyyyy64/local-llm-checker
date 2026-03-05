@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+import statistics
 
 import httpx
 
@@ -15,6 +16,18 @@ logger = logging.getLogger(__name__)
 
 HF_API_BASE = "https://huggingface.co/api"
 _GGUF_SPLIT_RE = re.compile(r"-(\d{5})-of-(\d{5})\.gguf$", re.IGNORECASE)
+_GENERAL_EVAL_KEYWORDS = (
+    "mmlu",
+    "gpqa",
+    "gsm8k",
+    "hellaswag",
+    "arc",
+    "bbh",
+    "ifeval",
+    "truthfulqa",
+    "ceval",
+    "cmmlu",
+)
 
 
 def _extract_published_at(data: dict) -> str | None:
@@ -26,6 +39,66 @@ def _extract_published_at(data: dict) -> str | None:
     if isinstance(modified, str) and modified:
         return modified
     return None
+
+
+def _normalize_eval_value(raw: object) -> float | None:
+    """Convert eval value to a comparable 0-100 score."""
+    if not isinstance(raw, (int, float)):
+        return None
+    value = float(raw)
+    if value <= 0:
+        return None
+    if value <= 1.0:
+        value *= 100.0
+    if value > 100.0:
+        return None
+    return value
+
+
+def _is_general_eval_entry(entry: dict) -> bool:
+    """Keep eval entries that are broadly useful for general chat quality."""
+    data = entry.get("data")
+    if not isinstance(data, dict):
+        return False
+
+    notes = str(data.get("notes", "")).lower()
+    # ツール利用前提の数値はローカル推論の比較軸として混ざりやすいため除外する。
+    if "with tools" in notes:
+        return False
+
+    dataset = data.get("dataset")
+    dataset_id = ""
+    task_id = ""
+    if isinstance(dataset, dict):
+        dataset_id = str(dataset.get("id", "")).lower()
+        task_id = str(dataset.get("task_id", "")).lower()
+    filename = str(entry.get("filename", "")).lower()
+
+    return any(k in dataset_id or k in task_id or k in filename for k in _GENERAL_EVAL_KEYWORDS)
+
+
+def _extract_hf_eval_score(data: dict) -> float | None:
+    """Extract conservative aggregate score from HF evalResults."""
+    eval_results = data.get("evalResults")
+    if not isinstance(eval_results, list) or not eval_results:
+        return None
+
+    values: list[float] = []
+    for entry in eval_results:
+        if not isinstance(entry, dict):
+            continue
+        if not _is_general_eval_entry(entry):
+            continue
+        data_obj = entry.get("data")
+        if not isinstance(data_obj, dict):
+            continue
+        normalized = _normalize_eval_value(data_obj.get("value"))
+        if normalized is not None:
+            values.append(normalized)
+
+    if not values:
+        return None
+    return round(statistics.median(values), 1)
 
 
 def _extract_size_hint_from_id(model_id: str | None) -> int | None:
@@ -238,6 +311,11 @@ def _parse_model(data: dict) -> ModelInfo | None:
     if not context_length and isinstance(gguf_meta, dict):
         context_length = gguf_meta.get("context_length")
 
+    benchmark_scores: dict[str, float] = {}
+    eval_score = _extract_hf_eval_score(data)
+    if eval_score is not None:
+        benchmark_scores["hf_eval"] = eval_score
+
     return ModelInfo(
         id=model_id,
         family_id=model_id,  # will be set by grouper
@@ -252,6 +330,7 @@ def _parse_model(data: dict) -> ModelInfo | None:
         downloads=data.get("downloads", 0),
         likes=data.get("likes", 0),
         gguf_variants=gguf_variants,
+        benchmark_scores=benchmark_scores,
         base_model=base_model,
     )
 
@@ -265,9 +344,8 @@ async def fetch_models(limit: int = 300, include_vision: bool = True) -> list[Mo
         params = {
             "pipeline_tag": "text-generation",
             "sort": "downloads",
-            "direction": "-1",
             "limit": str(limit),
-            "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings"],
+            "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings", "evalResults"],
         }
         logger.debug(f"Fetching models from HF API (limit={limit})")
         resp = await client.get(f"{HF_API_BASE}/models", params=params)
@@ -283,9 +361,8 @@ async def fetch_models(limit: int = 300, include_vision: bool = True) -> list[Mo
             "pipeline_tag": "text-generation",
             "filter": "gguf",
             "sort": "downloads",
-            "direction": "-1",
             "limit": str(limit),
-            "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings"],
+            "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings", "evalResults"],
         }
         logger.debug("Fetching GGUF models from HF API")
         resp = await client.get(f"{HF_API_BASE}/models", params=gguf_params)
@@ -305,9 +382,8 @@ async def fetch_models(limit: int = 300, include_vision: bool = True) -> list[Mo
             "pipeline_tag": "text-generation",
             "filter": "gguf",
             "sort": "lastModified",
-            "direction": "-1",
             "limit": str(limit),
-            "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings"],
+            "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings", "evalResults"],
         }
         logger.debug("Fetching recent GGUF models from HF API")
         resp = await client.get(f"{HF_API_BASE}/models", params=recent_params)
@@ -327,9 +403,8 @@ async def fetch_models(limit: int = 300, include_vision: bool = True) -> list[Mo
                 mm_params = {
                     "pipeline_tag": pipeline_tag,
                     "sort": "downloads",
-                    "direction": "-1",
                     "limit": str(limit),
-                    "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings"],
+                    "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings", "evalResults"],
                 }
                 logger.debug(f"Fetching {pipeline_tag} models from HF API")
                 resp = await client.get(f"{HF_API_BASE}/models", params=mm_params)

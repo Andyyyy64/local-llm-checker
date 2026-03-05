@@ -1,6 +1,7 @@
 """Tests for model metadata normalization in fetcher."""
 
 from whichllm.models.fetcher import (
+    _extract_hf_eval_score,
     _extract_published_at,
     _normalize_param_count,
     _parse_model,
@@ -117,3 +118,58 @@ def test_parse_model_keeps_split_gguf_as_single_variant():
     assert len(q4) == 1
     assert len(q8) == 1
     assert q4[0].file_size_bytes == 4_500_000_000
+
+
+def test_extract_hf_eval_score_uses_general_datasets_and_median():
+    score = _extract_hf_eval_score(
+        {
+            "evalResults": [
+                {
+                    "filename": ".eval_results/mmlu-pro.yaml",
+                    "data": {"dataset": {"id": "TIGER-Lab/MMLU-Pro"}, "value": 48.3},
+                },
+                {
+                    "filename": ".eval_results/gsm8k.yaml",
+                    "data": {"dataset": {"id": "openai/gsm8k"}, "value": 84.5},
+                },
+                {
+                    "filename": ".eval_results/hle_medium_with_tools.yaml",
+                    "data": {
+                        "dataset": {"id": "cais/hle"},
+                        "value": 99.0,
+                        "notes": "Reasoning: medium, With tools",
+                    },
+                },
+                {
+                    "filename": ".eval_results/swe_bench.yaml",
+                    "data": {"dataset": {"id": "SWE-bench/SWE-bench_Verified"}, "value": 53.2},
+                },
+            ]
+        }
+    )
+    # general対象(mmlu/gsm8k)のみ集計し、中央値を使う。
+    assert score == 66.4
+
+
+def test_parse_model_extracts_hf_eval_benchmark_score():
+    parsed = _parse_model(
+        {
+            "id": "meta-llama/Llama-3.1-8B-Instruct",
+            "config": {"architectures": ["LlamaForCausalLM"]},
+            "safetensors": {"total": 8_000_000_000},
+            "siblings": [],
+            "cardData": {},
+            "evalResults": [
+                {
+                    "filename": ".eval_results/mmlu-pro.yaml",
+                    "data": {"dataset": {"id": "TIGER-Lab/MMLU-Pro"}, "value": 48.3},
+                },
+                {
+                    "filename": ".eval_results/gsm8k.yaml",
+                    "data": {"dataset": {"id": "openai/gsm8k"}, "value": 84.5},
+                },
+            ],
+        }
+    )
+    assert parsed is not None
+    assert parsed.benchmark_scores.get("hf_eval") == 66.4
