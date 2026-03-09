@@ -341,6 +341,91 @@ def main(
 
 
 @app.command()
+def plan(
+    model_name: str = typer.Argument(..., help="Model name or HuggingFace repo ID"),
+    context_length: int = typer.Option(4096, "--context-length", "-c", help="Context length for KV cache estimation"),
+    quant: Optional[str] = typer.Option(None, "--quant", "-q", help="Target quantization (default: Q4_K_M)"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+    refresh: bool = typer.Option(False, "--refresh", help="Ignore cache and re-fetch models"),
+):
+    """Show what GPU you need to run a specific model."""
+    from rich.progress import Progress, SpinnerColumn, TextColumn
+
+    from whichllm.models.cache import load_cache, save_cache
+    from whichllm.models.fetcher import dicts_to_models, fetch_models, models_to_dicts
+    from whichllm.output.display import display_plan, display_plan_json
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        console=console,
+        transient=True,
+    ) as progress:
+        task = progress.add_task("Loading models...", total=None)
+        cached_data = None if refresh else load_cache()
+        if cached_data is not None:
+            models = dicts_to_models(cached_data)
+        else:
+            progress.update(task, description="Fetching models from HuggingFace...")
+            try:
+                models = _run_async(fetch_models(include_vision=True))
+                save_cache(models_to_dicts(models))
+            except Exception as e:
+                console.print(f"[red]Error fetching models:[/] {e}")
+                sys.exit(1)
+
+    # Search for model
+    query_lower = model_name.lower()
+    terms = query_lower.split()
+
+    # 1. Exact match on ID
+    matches = [m for m in models if m.id.lower() == query_lower]
+
+    # 2. ID ends with query (e.g. "Llama-3-70B" matches "org/Llama-3-70B")
+    if not matches:
+        matches = [m for m in models if m.id.lower().endswith("/" + query_lower)]
+
+    # 3. All query terms appear in model ID
+    if not matches:
+        matches = [m for m in models if all(t in m.id.lower() for t in terms)]
+
+    if not matches:
+        console.print(f"[red]No model found matching '{model_name}'.[/]")
+        suggestions = [m for m in models if any(t in m.id.lower() for t in terms)]
+        if suggestions:
+            suggestions.sort(key=lambda m: m.downloads, reverse=True)
+            console.print("\n[yellow]Did you mean:[/]")
+            for m in suggestions[:5]:
+                p = f"{m.parameter_count / 1e9:.1f}B" if m.parameter_count >= 1e9 else f"{m.parameter_count / 1e6:.0f}M"
+                console.print(f"  • {m.id} ({p})")
+        raise typer.Exit(code=1)
+
+    if len(matches) > 10:
+        console.print(f"\n[yellow]{len(matches)} models match '{model_name}'. Top by downloads:[/]")
+        matches.sort(key=lambda m: m.downloads, reverse=True)
+        for m in matches[:10]:
+            p = f"{m.parameter_count / 1e9:.1f}B" if m.parameter_count >= 1e9 else f"{m.parameter_count / 1e6:.0f}M"
+            console.print(f"  • {m.id} ({p})")
+        console.print("\n[dim]Be more specific to narrow results.[/]")
+        raise typer.Exit(code=1)
+
+    # Pick best match (most downloaded)
+    matches.sort(key=lambda m: m.downloads, reverse=True)
+    model = matches[0]
+    if len(matches) > 1:
+        console.print(f"[dim]Found {len(matches)} matches, using: {model.id}[/]")
+
+    target_quant = quant.upper() if quant else "Q4_K_M"
+
+    if json_output:
+        display_plan_json(model, context_length, target_quant)
+    else:
+        console.print()
+        display_plan(model, context_length, target_quant)
+        console.print()
+
+
+@app.command()
 def hardware(
     cpu_only: bool = typer.Option(False, "--cpu-only", help="Ignore GPU and run in CPU-only mode"),
     gpu: Optional[str] = typer.Option(None, "--gpu", help="Simulate a GPU (e.g. 'RTX 4090')"),

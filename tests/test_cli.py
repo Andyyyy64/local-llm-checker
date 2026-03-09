@@ -128,3 +128,70 @@ def test_validate_evidence_rejects_unknown_mode():
 
 def test_resolve_evidence_mode_direct_alias_wins():
     assert _resolve_evidence_mode("base", direct=True) == "strict"
+
+
+# --------------- plan command tests ---------------
+
+
+def test_plan_no_model_found_shows_error():
+    runner = CliRunner()
+    result = runner.invoke(app, ["plan", "nonexistent_model_xyz_999"])
+    assert result.exit_code != 0
+    assert "No model found" in result.stdout
+
+
+def test_plan_display_plan_renders_tables():
+    """display_plan should render model info, VRAM table, and GPU table."""
+    from whichllm.output.display import display_plan
+
+    model = ModelInfo(
+        id="test-org/Test-Model-7B-GGUF",
+        family_id="test-7b",
+        name="Test-Model-7B",
+        parameter_count=7_000_000_000,
+        architecture="llama",
+        context_length=4096,
+        license="mit",
+        downloads=100,
+        likes=10,
+    )
+    # Should not raise
+    display_plan(model, context_length=4096, target_quant="Q4_K_M")
+
+
+def test_plan_display_plan_json_outputs_valid_json():
+    """display_plan_json should output valid JSON."""
+    import json as json_mod
+    from io import StringIO
+
+    from rich.console import Console
+
+    from whichllm.output.display import display_plan_json
+
+    model = ModelInfo(
+        id="test-org/Test-Model-7B-GGUF",
+        family_id="test-7b",
+        name="Test-Model-7B",
+        parameter_count=7_000_000_000,
+        architecture="llama",
+        context_length=4096,
+        license="mit",
+        downloads=100,
+        likes=10,
+    )
+    # Capture output
+    buf = StringIO()
+    import whichllm.output.display as disp_mod
+
+    orig_console = disp_mod.console
+    disp_mod.console = Console(file=buf, force_terminal=False)
+    try:
+        display_plan_json(model, context_length=4096, target_quant="Q4_K_M")
+    finally:
+        disp_mod.console = orig_console
+    raw = buf.getvalue().strip()
+    data = json_mod.loads(raw)
+    assert data["model"]["id"] == "test-org/Test-Model-7B-GGUF"
+    assert "vram_by_quant" in data
+    assert "gpu_compatibility" in data
+    assert data["target_quant"] == "Q4_K_M"
