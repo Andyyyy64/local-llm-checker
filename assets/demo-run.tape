@@ -1,9 +1,9 @@
 # VHS demo recording for whichllm run/snippet
 # Install: https://github.com/charmbracelet/vhs
-# Run: vhs demo-run.tape
-# Output: assets/demo-run.gif
+# Run: cd assets && vhs demo-run.tape
+# Output: demo-run.gif
 
-Output assets/demo-run.gif
+Output demo-run.gif
 
 Set FontSize 15
 Set Width 1200

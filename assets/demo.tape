@@ -1,9 +1,9 @@
 # VHS demo recording for whichllm
 # Install: https://github.com/charmbracelet/vhs
-# Run: vhs demo.tape
-# Output: assets/demo.gif
+# Run: cd assets && vhs demo.tape
+# Output: demo.gif
 
-Output assets/demo.gif
+Output demo.gif
 
 Set FontSize 15
 Set Width 1200
