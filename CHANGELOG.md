@@ -4,13 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [0.4.0] - 2026-03-09
 
 ### Added
 
 - `whichllm plan` subcommand — reverse lookup to find what GPU you need for a model
+- Ollama integration examples and shell alias
 - Homebrew formula for `brew install whichllm`
 - VHS tape file for recording CLI demo GIF
+- GitHub Actions CI/CD (tests, lint, PyPI publish)
+- CONTRIBUTING.md, CODE_OF_CONDUCT.md
+- Issue and PR templates
+- PyPI metadata (classifiers, keywords, URLs)
 
 ## [0.3.0] - 2026-03-09
 
