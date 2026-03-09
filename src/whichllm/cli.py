@@ -42,7 +42,9 @@ def _print_version(value: bool) -> None:
 
 
 def _validate_gpu_flags(
-    cpu_only: bool, gpu: str | None, vram: float | None,
+    cpu_only: bool,
+    gpu: str | None,
+    vram: float | None,
 ) -> None:
     """Validate mutual exclusivity of GPU-related flags."""
     if cpu_only and gpu:
@@ -85,7 +87,10 @@ def _resolve_evidence_mode(evidence: str, direct: bool) -> str:
 
 
 def _apply_gpu_overrides(
-    hardware: HardwareInfo, cpu_only: bool, gpu: str | None, vram: float | None,
+    hardware: HardwareInfo,
+    cpu_only: bool,
+    gpu: str | None,
+    vram: float | None,
 ) -> HardwareInfo:
     """Replace hardware.gpus based on CLI flags."""
     if cpu_only:
@@ -169,11 +174,19 @@ def main(
         callback=_print_version,
         is_eager=True,
     ),
-    refresh: bool = typer.Option(False, "--refresh", help="Ignore cache and re-fetch models"),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Ignore cache and re-fetch models"
+    ),
     top: int = typer.Option(10, "--top", "-n", help="Number of top models to show"),
-    context_length: int = typer.Option(4096, "--context-length", "-c", help="Context length for KV cache estimation"),
-    quant: Optional[str] = typer.Option(None, "--quant", "-q", help="Filter by quantization type (e.g. Q4_K_M)"),
-    min_speed: Optional[float] = typer.Option(None, "--min-speed", help="Minimum tok/s filter"),
+    context_length: int = typer.Option(
+        4096, "--context-length", "-c", help="Context length for KV cache estimation"
+    ),
+    quant: Optional[str] = typer.Option(
+        None, "--quant", "-q", help="Filter by quantization type (e.g. Q4_K_M)"
+    ),
+    min_speed: Optional[float] = typer.Option(
+        None, "--min-speed", help="Minimum tok/s filter"
+    ),
     evidence: str = typer.Option(
         "any",
         "--evidence",
@@ -200,9 +213,15 @@ def main(
         help="Ranking profile: general | coding | vision | math | any",
     ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-    cpu_only: bool = typer.Option(False, "--cpu-only", help="Ignore GPU and run in CPU-only mode"),
-    gpu: Optional[str] = typer.Option(None, "--gpu", help="Simulate a GPU (e.g. 'RTX 4090')"),
-    vram: Optional[float] = typer.Option(None, "--vram", help="Override VRAM in GB (requires --gpu)"),
+    cpu_only: bool = typer.Option(
+        False, "--cpu-only", help="Ignore GPU and run in CPU-only mode"
+    ),
+    gpu: Optional[str] = typer.Option(
+        None, "--gpu", help="Simulate a GPU (e.g. 'RTX 4090')"
+    ),
+    vram: Optional[float] = typer.Option(
+        None, "--vram", help="Override VRAM in GB (requires --gpu)"
+    ),
 ):
     """Detect hardware and recommend the best local LLMs."""
     if ctx.invoked_subcommand is not None:
@@ -252,7 +271,9 @@ def main(
         else:
             progress.update(task, description="Fetching models from HuggingFace...")
             try:
-                models = _run_async(fetch_models(include_vision=_include_vision_candidates(profile)))
+                models = _run_async(
+                    fetch_models(include_vision=_include_vision_candidates(profile))
+                )
                 save_cache(models_to_dicts(models))
                 progress.update(task, description=f"Fetched {len(models)} models")
             except Exception as e:
@@ -324,10 +345,14 @@ def main(
         # 上位候補の公開日時が欠けている場合のみ補完して表示品質を上げる
         if results:
             try:
-                if _fill_missing_published_at(all_models, results, fetch_model_published_at):
+                if _fill_missing_published_at(
+                    all_models, results, fetch_model_published_at
+                ):
                     save_cache(models_to_dicts(models))
             except Exception as e:
-                progress.update(task, description=f"Published date backfill skipped: {e}")
+                progress.update(
+                    task, description=f"Published date backfill skipped: {e}"
+                )
 
     # Display results
     if json_output:
@@ -343,10 +368,16 @@ def main(
 @app.command()
 def plan(
     model_name: str = typer.Argument(..., help="Model name or HuggingFace repo ID"),
-    context_length: int = typer.Option(4096, "--context-length", "-c", help="Context length for KV cache estimation"),
-    quant: Optional[str] = typer.Option(None, "--quant", "-q", help="Target quantization (default: Q4_K_M)"),
+    context_length: int = typer.Option(
+        4096, "--context-length", "-c", help="Context length for KV cache estimation"
+    ),
+    quant: Optional[str] = typer.Option(
+        None, "--quant", "-q", help="Target quantization (default: Q4_K_M)"
+    ),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
-    refresh: bool = typer.Option(False, "--refresh", help="Ignore cache and re-fetch models"),
+    refresh: bool = typer.Option(
+        False, "--refresh", help="Ignore cache and re-fetch models"
+    ),
 ):
     """Show what GPU you need to run a specific model."""
     from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -396,15 +427,25 @@ def plan(
             suggestions.sort(key=lambda m: m.downloads, reverse=True)
             console.print("\n[yellow]Did you mean:[/]")
             for m in suggestions[:5]:
-                p = f"{m.parameter_count / 1e9:.1f}B" if m.parameter_count >= 1e9 else f"{m.parameter_count / 1e6:.0f}M"
+                p = (
+                    f"{m.parameter_count / 1e9:.1f}B"
+                    if m.parameter_count >= 1e9
+                    else f"{m.parameter_count / 1e6:.0f}M"
+                )
                 console.print(f"  • {m.id} ({p})")
         raise typer.Exit(code=1)
 
     if len(matches) > 10:
-        console.print(f"\n[yellow]{len(matches)} models match '{model_name}'. Top by downloads:[/]")
+        console.print(
+            f"\n[yellow]{len(matches)} models match '{model_name}'. Top by downloads:[/]"
+        )
         matches.sort(key=lambda m: m.downloads, reverse=True)
         for m in matches[:10]:
-            p = f"{m.parameter_count / 1e9:.1f}B" if m.parameter_count >= 1e9 else f"{m.parameter_count / 1e6:.0f}M"
+            p = (
+                f"{m.parameter_count / 1e9:.1f}B"
+                if m.parameter_count >= 1e9
+                else f"{m.parameter_count / 1e6:.0f}M"
+            )
             console.print(f"  • {m.id} ({p})")
         console.print("\n[dim]Be more specific to narrow results.[/]")
         raise typer.Exit(code=1)
@@ -427,9 +468,15 @@ def plan(
 
 @app.command()
 def hardware(
-    cpu_only: bool = typer.Option(False, "--cpu-only", help="Ignore GPU and run in CPU-only mode"),
-    gpu: Optional[str] = typer.Option(None, "--gpu", help="Simulate a GPU (e.g. 'RTX 4090')"),
-    vram: Optional[float] = typer.Option(None, "--vram", help="Override VRAM in GB (requires --gpu)"),
+    cpu_only: bool = typer.Option(
+        False, "--cpu-only", help="Ignore GPU and run in CPU-only mode"
+    ),
+    gpu: Optional[str] = typer.Option(
+        None, "--gpu", help="Simulate a GPU (e.g. 'RTX 4090')"
+    ),
+    vram: Optional[float] = typer.Option(
+        None, "--vram", help="Override VRAM in GB (requires --gpu)"
+    ),
 ):
     """Show detected hardware information only."""
     _validate_gpu_flags(cpu_only, gpu, vram)

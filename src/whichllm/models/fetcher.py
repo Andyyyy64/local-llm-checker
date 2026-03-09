@@ -74,7 +74,9 @@ def _is_general_eval_entry(entry: dict) -> bool:
         task_id = str(dataset.get("task_id", "")).lower()
     filename = str(entry.get("filename", "")).lower()
 
-    return any(k in dataset_id or k in task_id or k in filename for k in _GENERAL_EVAL_KEYWORDS)
+    return any(
+        k in dataset_id or k in task_id or k in filename for k in _GENERAL_EVAL_KEYWORDS
+    )
 
 
 def _extract_hf_eval_score(data: dict) -> float | None:
@@ -121,9 +123,7 @@ def _extract_size_hint_from_id(model_id: str | None) -> int | None:
 def _is_quantized_repo_name(model_id: str) -> bool:
     """Detect quantized/non-base repository naming patterns."""
     lower = model_id.lower()
-    return bool(
-        re.search(r"(gptq|awq|bnb|4bit|int4|int8|fp8|gguf|quant)", lower)
-    )
+    return bool(re.search(r"(gptq|awq|bnb|4bit|int4|int8|fp8|gguf|quant)", lower))
 
 
 def _normalize_param_count(
@@ -136,10 +136,12 @@ def _normalize_param_count(
         return extracted
 
     hints = [
-        h for h in (
+        h
+        for h in (
             _extract_size_hint_from_id(model_id),
             _extract_size_hint_from_id(base_model),
-        ) if h is not None
+        )
+        if h is not None
     ]
     if not hints:
         return extracted
@@ -219,7 +221,17 @@ def _extract_architecture(config: dict) -> str:
     if arch_list:
         arch = arch_list[0].lower()
         # Normalize
-        for name in ["llama", "qwen2", "mistral", "mixtral", "gemma", "phi", "starcoder", "command", "deepseek"]:
+        for name in [
+            "llama",
+            "qwen2",
+            "mistral",
+            "mixtral",
+            "gemma",
+            "phi",
+            "starcoder",
+            "command",
+            "deepseek",
+        ]:
             if name in arch:
                 return name
         return arch.replace("forcausallm", "").replace("forconditionalgeneration", "")
@@ -283,7 +295,9 @@ def _parse_model(data: dict) -> ModelInfo | None:
 
         # 分割GGUFは量子化ごとに合算して1候補として扱う。
         quant_sizes[quant] = quant_sizes.get(quant, 0) + size
-        if quant not in quant_first_filename or _GGUF_SPLIT_RE.search(quant_first_filename[quant]):
+        if quant not in quant_first_filename or _GGUF_SPLIT_RE.search(
+            quant_first_filename[quant]
+        ):
             quant_first_filename[quant] = fname
 
     gguf_variants = []
@@ -335,7 +349,9 @@ def _parse_model(data: dict) -> ModelInfo | None:
     )
 
 
-async def fetch_models(limit: int = 300, include_vision: bool = True) -> list[ModelInfo]:
+async def fetch_models(
+    limit: int = 300, include_vision: bool = True
+) -> list[ModelInfo]:
     """Fetch popular models from HuggingFace Hub."""
     models: list[ModelInfo] = []
 
@@ -345,7 +361,14 @@ async def fetch_models(limit: int = 300, include_vision: bool = True) -> list[Mo
             "pipeline_tag": "text-generation",
             "sort": "downloads",
             "limit": str(limit),
-            "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings", "evalResults"],
+            "expand[]": [
+                "config",
+                "safetensors",
+                "gguf",
+                "cardData",
+                "siblings",
+                "evalResults",
+            ],
         }
         logger.debug(f"Fetching models from HF API (limit={limit})")
         resp = await client.get(f"{HF_API_BASE}/models", params=params)
@@ -362,7 +385,14 @@ async def fetch_models(limit: int = 300, include_vision: bool = True) -> list[Mo
             "filter": "gguf",
             "sort": "downloads",
             "limit": str(limit),
-            "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings", "evalResults"],
+            "expand[]": [
+                "config",
+                "safetensors",
+                "gguf",
+                "cardData",
+                "siblings",
+                "evalResults",
+            ],
         }
         logger.debug("Fetching GGUF models from HF API")
         resp = await client.get(f"{HF_API_BASE}/models", params=gguf_params)
@@ -383,7 +413,14 @@ async def fetch_models(limit: int = 300, include_vision: bool = True) -> list[Mo
             "filter": "gguf",
             "sort": "lastModified",
             "limit": str(limit),
-            "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings", "evalResults"],
+            "expand[]": [
+                "config",
+                "safetensors",
+                "gguf",
+                "cardData",
+                "siblings",
+                "evalResults",
+            ],
         }
         logger.debug("Fetching recent GGUF models from HF API")
         resp = await client.get(f"{HF_API_BASE}/models", params=recent_params)
@@ -404,7 +441,14 @@ async def fetch_models(limit: int = 300, include_vision: bool = True) -> list[Mo
                     "pipeline_tag": pipeline_tag,
                     "sort": "downloads",
                     "limit": str(limit),
-                    "expand[]": ["config", "safetensors", "gguf", "cardData", "siblings", "evalResults"],
+                    "expand[]": [
+                        "config",
+                        "safetensors",
+                        "gguf",
+                        "cardData",
+                        "siblings",
+                        "evalResults",
+                    ],
                 }
                 logger.debug(f"Fetching {pipeline_tag} models from HF API")
                 resp = await client.get(f"{HF_API_BASE}/models", params=mm_params)
@@ -516,7 +560,11 @@ async def fetch_model_published_at(model_ids: list[str]) -> dict[str, str]:
             logger.debug("Failed to fetch model detail for %s: %s", model_id, resp)
             continue
         if resp.status_code >= 400:
-            logger.debug("Failed to fetch model detail for %s: HTTP %s", model_id, resp.status_code)
+            logger.debug(
+                "Failed to fetch model detail for %s: HTTP %s",
+                model_id,
+                resp.status_code,
+            )
             continue
         try:
             data = resp.json()

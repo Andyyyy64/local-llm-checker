@@ -99,7 +99,9 @@ def group_models(models: list[ModelInfo]) -> list[ModelFamily]:
             continue
 
         # Pick the base model: prefer the one with most downloads that has no GGUF suffix
-        base_candidates = [m for m in group if not m.gguf_variants or m.base_model is None]
+        base_candidates = [
+            m for m in group if not m.gguf_variants or m.base_model is None
+        ]
         if not base_candidates:
             base_candidates = group
 

@@ -73,8 +73,14 @@ def check_compatibility(
         warnings.append("Insufficient memory (GPU VRAM + RAM) to run this model")
 
     # Context length warning
-    if context_length > 8192 and model.context_length and model.context_length >= context_length:
-        warnings.append(f"Large context ({context_length}) increases VRAM usage significantly")
+    if (
+        context_length > 8192
+        and model.context_length
+        and model.context_length >= context_length
+    ):
+        warnings.append(
+            f"Large context ({context_length}) increases VRAM usage significantly"
+        )
 
     # File size vs disk space
     file_size = estimate_weight_bytes(model, variant)

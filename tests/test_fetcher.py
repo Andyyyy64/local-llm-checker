@@ -105,8 +105,14 @@ def test_parse_model_keeps_split_gguf_as_single_variant():
             },
             "safetensors": {"total": 8_000_000_000},
             "siblings": [
-                {"rfilename": "model-Q4_K_M-00001-of-00002.gguf", "size": 2_000_000_000},
-                {"rfilename": "model-Q4_K_M-00002-of-00002.gguf", "size": 2_500_000_000},
+                {
+                    "rfilename": "model-Q4_K_M-00001-of-00002.gguf",
+                    "size": 2_000_000_000,
+                },
+                {
+                    "rfilename": "model-Q4_K_M-00002-of-00002.gguf",
+                    "size": 2_500_000_000,
+                },
                 {"rfilename": "model-Q8_0.gguf", "size": 8_000_000_000},
             ],
             "cardData": {},
@@ -142,7 +148,10 @@ def test_extract_hf_eval_score_uses_general_datasets_and_median():
                 },
                 {
                     "filename": ".eval_results/swe_bench.yaml",
-                    "data": {"dataset": {"id": "SWE-bench/SWE-bench_Verified"}, "value": 53.2},
+                    "data": {
+                        "dataset": {"id": "SWE-bench/SWE-bench_Verified"},
+                        "value": 53.2,
+                    },
                 },
             ]
         }

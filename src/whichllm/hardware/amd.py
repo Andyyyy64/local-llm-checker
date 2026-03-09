@@ -78,7 +78,9 @@ def detect_amd_gpus() -> list[GPUInfo]:
         if not key.startswith("card"):
             continue
         card_info = product_data[key]
-        name = card_info.get("Card SKU", card_info.get("Card series", "Unknown AMD GPU"))
+        name = card_info.get(
+            "Card SKU", card_info.get("Card series", "Unknown AMD GPU")
+        )
 
         vram_total = 0
         if key in mem_data:

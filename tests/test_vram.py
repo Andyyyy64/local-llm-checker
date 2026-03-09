@@ -16,7 +16,9 @@ def _make_model(params: int, **kwargs) -> ModelInfo:
 
 def test_estimate_vram_gguf_variant():
     model = _make_model(7_000_000_000)
-    variant = GGUFVariant(filename="model-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_000_000_000)
+    variant = GGUFVariant(
+        filename="model-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_000_000_000
+    )
     vram = estimate_vram(model, variant, context_length=4096)
     # Should be: 4GB weights + KV cache + activation + framework overhead
     assert vram > 4_000_000_000
@@ -33,7 +35,9 @@ def test_estimate_vram_fp16_fallback():
 
 def test_estimate_vram_increases_with_context():
     model = _make_model(7_000_000_000)
-    variant = GGUFVariant(filename="model-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_000_000_000)
+    variant = GGUFVariant(
+        filename="model-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_000_000_000
+    )
     vram_4k = estimate_vram(model, variant, context_length=4096)
     vram_32k = estimate_vram(model, variant, context_length=32768)
     assert vram_32k > vram_4k
@@ -49,7 +53,9 @@ def test_estimate_kv_cache_scales_with_params():
 
 def test_estimate_vram_small_model():
     model = _make_model(500_000_000)  # 0.5B
-    variant = GGUFVariant(filename="model-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=300_000_000)
+    variant = GGUFVariant(
+        filename="model-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=300_000_000
+    )
     vram = estimate_vram(model, variant, context_length=4096)
     # Should be reasonable for a tiny model
     assert vram > 300_000_000

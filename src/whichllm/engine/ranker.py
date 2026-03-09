@@ -55,13 +55,17 @@ def _iter_candidate_variants(
     # Filter by quant type if specified
     candidates: list[GGUFVariant] = model.gguf_variants
     if quant_filter_upper:
-        candidates = [v for v in candidates if v.quant_type.upper() == quant_filter_upper]
+        candidates = [
+            v for v in candidates if v.quant_type.upper() == quant_filter_upper
+        ]
         if not candidates:
             return []
     else:
         # Exclude extreme quantizations unless explicitly requested
         _EXTREME_QUANTS = {"Q2_K", "IQ2_XXS", "IQ3_XXS"}
-        filtered = [v for v in candidates if v.quant_type.upper() not in _EXTREME_QUANTS]
+        filtered = [
+            v for v in candidates if v.quant_type.upper() not in _EXTREME_QUANTS
+        ]
         if filtered:
             candidates = filtered
 
@@ -77,23 +81,45 @@ def _iter_candidate_variants(
     return list(candidates)
 
 
-_OFFICIAL_ORGS = frozenset({
-    "Qwen", "meta-llama", "google", "mistralai", "deepseek-ai",
-    "microsoft", "nvidia", "01-ai", "tiiuae", "apple",
-    "CohereForAI", "bigcode",
-})
+_OFFICIAL_ORGS = frozenset(
+    {
+        "Qwen",
+        "meta-llama",
+        "google",
+        "mistralai",
+        "deepseek-ai",
+        "microsoft",
+        "nvidia",
+        "01-ai",
+        "tiiuae",
+        "apple",
+        "CohereForAI",
+        "bigcode",
+    }
+)
 
 # Trusted GGUF converters — format converters that don't change model quality
-_TRUSTED_CONVERTERS = frozenset({
-    "bartowski", "lmstudio-community", "QuantFactory", "unsloth",
-    "ggml-org", "Mungert",
-})
+_TRUSTED_CONVERTERS = frozenset(
+    {
+        "bartowski",
+        "lmstudio-community",
+        "QuantFactory",
+        "unsloth",
+        "ggml-org",
+        "Mungert",
+    }
+)
 
 # Known repackagers — typically reupload others' models without added value
-_REPACKAGER_ORGS = frozenset({
-    "MaziyarPanahi", "TheBloke", "SanctumAI", "solidrust",
-    "mradermacher",
-})
+_REPACKAGER_ORGS = frozenset(
+    {
+        "MaziyarPanahi",
+        "TheBloke",
+        "SanctumAI",
+        "solidrust",
+        "mradermacher",
+    }
+)
 
 
 def _detect_specializations(model_id: str) -> set[str]:
@@ -146,7 +172,9 @@ def _is_gguf_only_backend(hardware: HardwareInfo) -> bool:
         return True
 
     # Linux + NVIDIA (CUDA) は AWQ/GPTQ 含む非GGUFも許可する。
-    has_linux_nvidia = hardware.os == "linux" and any(g.vendor == "nvidia" for g in hardware.gpus)
+    has_linux_nvidia = hardware.os == "linux" and any(
+        g.vendor == "nvidia" for g in hardware.gpus
+    )
     return not has_linux_nvidia
 
 
@@ -211,7 +239,11 @@ def _compute_quality_score(
 
     # 速度は順位を決める主因ではなく「使い物になるか」の補正にする
     speed_score = 0.0
-    required_speed = 8.0 if fit_type == "full_gpu" else (4.0 if fit_type == "partial_offload" else 1.5)
+    required_speed = (
+        8.0
+        if fit_type == "full_gpu"
+        else (4.0 if fit_type == "partial_offload" else 1.5)
+    )
     if tok_per_sec > 0:
         if tok_per_sec < required_speed:
             # 閾値未満は強く減点
@@ -345,7 +377,9 @@ def rank_models(
             if not compat.can_run:
                 continue
 
-            tok_per_sec = estimate_tok_per_sec(model, variant, best_gpu, compat.fit_type)
+            tok_per_sec = estimate_tok_per_sec(
+                model, variant, best_gpu, compat.fit_type
+            )
             if min_speed is not None and tok_per_sec < min_speed:
                 continue
 
@@ -372,11 +406,16 @@ def rank_models(
                 benchmark_is_direct=bench_is_direct,
             )
             if bench_evidence.score is not None:
-                compat.benchmark_status = "direct" if bench_evidence.source == "direct" else "estimated"
+                compat.benchmark_status = (
+                    "direct" if bench_evidence.source == "direct" else "estimated"
+                )
             else:
                 compat.benchmark_status = "none"
 
-            if best_for_model is None or compat.quality_score > best_for_model.quality_score:
+            if (
+                best_for_model is None
+                or compat.quality_score > best_for_model.quality_score
+            ):
                 best_for_model = compat
 
         if best_for_model is None:
@@ -406,6 +445,8 @@ def rank_models(
             reverse=True,
         )
     else:
-        results.sort(key=lambda r: _family_selection_key(r, require_direct_top), reverse=True)
+        results.sort(
+            key=lambda r: _family_selection_key(r, require_direct_top), reverse=True
+        )
 
     return results[:top_n]

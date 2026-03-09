@@ -158,7 +158,11 @@ def display_hardware(hw: HardwareInfo) -> None:
     if hw.gpus:
         for i, gpu in enumerate(hw.gpus):
             vram = _format_bytes(gpu.vram_bytes)
-            bw = f"{gpu.memory_bandwidth_gbps:.0f} GB/s" if gpu.memory_bandwidth_gbps else "N/A"
+            bw = (
+                f"{gpu.memory_bandwidth_gbps:.0f} GB/s"
+                if gpu.memory_bandwidth_gbps
+                else "N/A"
+            )
             cc = (
                 f"CC {gpu.compute_capability[0]}.{gpu.compute_capability[1]}"
                 if gpu.compute_capability
@@ -172,7 +176,9 @@ def display_hardware(hw: HardwareInfo) -> None:
             if gpu.rocm_version:
                 extra.append(f"ROCm {gpu.rocm_version}")
             extra_str = f" ({', '.join(extra)})" if extra else ""
-            lines.append(f"[bold green]GPU {i}:[/] {gpu.name} — {vram}{extra_str} — BW: {bw}")
+            lines.append(
+                f"[bold green]GPU {i}:[/] {gpu.name} — {vram}{extra_str} — BW: {bw}"
+            )
     else:
         lines.append("[yellow]No GPU detected[/] — CPU-only mode")
 
@@ -222,7 +228,9 @@ def display_ranking(
     table.add_column("Score", justify="right", width=5)
     table.add_column("License", width=8)
 
-    download_logs = [log10(max(r.model.downloads, 1)) for r in results if r.model.downloads > 0]
+    download_logs = [
+        log10(max(r.model.downloads, 1)) for r in results if r.model.downloads > 0
+    ]
     min_download_log = min(download_logs) if download_logs else 0.0
     max_download_log = max(download_logs) if download_logs else 1.0
     published_dates = [_parse_published_at(r.model.published_at) for r in results]
@@ -233,7 +241,9 @@ def display_ranking(
     for i, r in enumerate(results, 1):
         quant = effective_quant_type(r.model, r.gguf_variant)
         vram_str = _format_bytes(r.vram_required_bytes)
-        speed_str = f"{r.estimated_tok_per_sec:.1f} tok/s" if r.estimated_tok_per_sec else "N/A"
+        speed_str = (
+            f"{r.estimated_tok_per_sec:.1f} tok/s" if r.estimated_tok_per_sec else "N/A"
+        )
 
         # Score with benchmark status indicator
         score_val = f"{r.quality_score:.1f}"
@@ -257,7 +267,9 @@ def display_ranking(
         )
         downloads_str = Text(
             _format_downloads(r.model.downloads),
-            style=_downloads_style(r.model.downloads, min_download_log, max_download_log),
+            style=_downloads_style(
+                r.model.downloads, min_download_log, max_download_log
+            ),
         )
 
         params_str = _format_params(r.model.parameter_count)
@@ -320,10 +332,14 @@ def display_ranking(
             )
 
     # 上位に根拠が弱い候補がある場合は目立つ注意を出す
-    weak_top = [idx + 1 for idx, r in enumerate(results[:3]) if r.benchmark_status != "direct"]
+    weak_top = [
+        idx + 1 for idx, r in enumerate(results[:3]) if r.benchmark_status != "direct"
+    ]
     if weak_top:
         joined = ", ".join(f"#{i}" for i in weak_top)
-        console.print(f"  [yellow]Caution:[/] Weaker benchmark evidence in top ranks: {joined}")
+        console.print(
+            f"  [yellow]Caution:[/] Weaker benchmark evidence in top ranks: {joined}"
+        )
 
     specialized: list[str] = []
     for idx, r in enumerate(results[:10], 1):
@@ -379,7 +395,9 @@ def display_plan(
 
     # -- VRAM requirements by quantization --
     quant_levels = ["Q2_K", "Q3_K_M", "Q4_K_M", "Q5_K_M", "Q6_K", "Q8_0", "F16"]
-    vram_table = Table(title=f"VRAM Required (context: {context_length})", show_lines=True)
+    vram_table = Table(
+        title=f"VRAM Required (context: {context_length})", show_lines=True
+    )
     vram_table.add_column("Quant", style="bold", width=8)
     vram_table.add_column("VRAM", justify="right", width=10)
     vram_table.add_column("Quality Loss", justify="right", width=12)
@@ -390,13 +408,17 @@ def display_plan(
         if bpw is None:
             continue
         fake_size = int(model.parameter_count * bpw)
-        fake_variant = GGUFVariant(filename="", quant_type=qt, file_size_bytes=fake_size)
+        fake_variant = GGUFVariant(
+            filename="", quant_type=qt, file_size_bytes=fake_size
+        )
         vram_bytes = estimate_vram(model, fake_variant, context_length)
         penalty = QUANT_QUALITY_PENALTY.get(qt, 0.0)
         penalty_str = f"-{penalty * 100:.0f}%" if penalty > 0 else "0%"
         marker = " ★" if qt.upper() == target_quant.upper() else ""
         style = "bold green" if qt.upper() == target_quant.upper() else ""
-        vram_table.add_row(f"{qt}{marker}", _format_bytes(vram_bytes), penalty_str, style=style)
+        vram_table.add_row(
+            f"{qt}{marker}", _format_bytes(vram_bytes), penalty_str, style=style
+        )
         if qt.upper() == target_quant.upper():
             target_vram = vram_bytes
 
@@ -406,7 +428,9 @@ def display_plan(
     if target_vram == 0:
         bpw = QUANT_BYTES_PER_WEIGHT.get(target_quant.upper(), 0.5625)
         fake_size = int(model.parameter_count * bpw)
-        fake_variant = GGUFVariant(filename="", quant_type=target_quant, file_size_bytes=fake_size)
+        fake_variant = GGUFVariant(
+            filename="", quant_type=target_quant, file_size_bytes=fake_size
+        )
         target_vram = estimate_vram(model, fake_variant, context_length)
 
     # -- GPU compatibility table --
@@ -436,7 +460,9 @@ def display_plan(
 
     bpw = QUANT_BYTES_PER_WEIGHT.get(target_quant.upper(), 0.5625)
     fake_size = int(model.parameter_count * bpw)
-    fake_variant = GGUFVariant(filename="", quant_type=target_quant, file_size_bytes=fake_size)
+    fake_variant = GGUFVariant(
+        filename="", quant_type=target_quant, file_size_bytes=fake_size
+    )
 
     min_full_gpu = None
     for gpu_name, vram_gb in _PLAN_GPUS:
@@ -507,7 +533,9 @@ def display_plan_json(
         if bpw is None:
             continue
         fake_size = int(model.parameter_count * bpw)
-        fake_variant = GGUFVariant(filename="", quant_type=qt, file_size_bytes=fake_size)
+        fake_variant = GGUFVariant(
+            filename="", quant_type=qt, file_size_bytes=fake_size
+        )
         vram_bytes = estimate_vram(model, fake_variant, context_length)
         vram_by_quant[qt] = {
             "vram_bytes": vram_bytes,
@@ -518,25 +546,40 @@ def display_plan_json(
     if target_vram == 0:
         bpw = QUANT_BYTES_PER_WEIGHT.get(target_quant.upper(), 0.5625)
         fake_size = int(model.parameter_count * bpw)
-        fake_variant = GGUFVariant(filename="", quant_type=target_quant, file_size_bytes=fake_size)
+        fake_variant = GGUFVariant(
+            filename="", quant_type=target_quant, file_size_bytes=fake_size
+        )
         target_vram = estimate_vram(model, fake_variant, context_length)
 
     _PLAN_GPUS: list[tuple[str, int]] = [
-        ("RTX 4060", 8), ("RTX 3060", 12), ("RTX 4070", 12), ("RTX 4080", 16),
-        ("RTX 4090", 24), ("RX 7900 XTX", 24), ("RTX 5090", 32),
-        ("A100 40GB", 40), ("L40S", 48), ("A100 80GB", 80), ("H100", 80), ("H200", 141),
+        ("RTX 4060", 8),
+        ("RTX 3060", 12),
+        ("RTX 4070", 12),
+        ("RTX 4080", 16),
+        ("RTX 4090", 24),
+        ("RX 7900 XTX", 24),
+        ("RTX 5090", 32),
+        ("A100 40GB", 40),
+        ("L40S", 48),
+        ("A100 80GB", 80),
+        ("H100", 80),
+        ("H200", 141),
     ]
 
     bpw = QUANT_BYTES_PER_WEIGHT.get(target_quant.upper(), 0.5625)
     fake_size = int(model.parameter_count * bpw)
-    fake_variant = GGUFVariant(filename="", quant_type=target_quant, file_size_bytes=fake_size)
+    fake_variant = GGUFVariant(
+        filename="", quant_type=target_quant, file_size_bytes=fake_size
+    )
 
     gpus = []
     for gpu_name, vram_gb in _PLAN_GPUS:
         vram_bytes = int(vram_gb * _GiB)
         bandwidth = GPU_BANDWIDTH.get(gpu_name)
         gpu_info = GPUInfo(
-            name=gpu_name, vendor="nvidia", vram_bytes=vram_bytes,
+            name=gpu_name,
+            vendor="nvidia",
+            vram_bytes=vram_bytes,
             memory_bandwidth_gbps=bandwidth,
         )
         if vram_bytes >= target_vram:
@@ -548,18 +591,26 @@ def display_plan_json(
 
         speed = None
         if fit_type != "too_small" and bandwidth:
-            speed = round(estimate_tok_per_sec(model, fake_variant, gpu_info, fit_type), 1)
+            speed = round(
+                estimate_tok_per_sec(model, fake_variant, gpu_info, fit_type), 1
+            )
 
-        gpus.append({
-            "name": gpu_name, "vram_gb": vram_gb,
-            "fit_type": fit_type, "estimated_tok_per_sec": speed,
-        })
+        gpus.append(
+            {
+                "name": gpu_name,
+                "vram_gb": vram_gb,
+                "fit_type": fit_type,
+                "estimated_tok_per_sec": speed,
+            }
+        )
 
     output = {
         "model": {
-            "id": model.id, "parameter_count": model.parameter_count,
+            "id": model.id,
+            "parameter_count": model.parameter_count,
             "architecture": model.architecture,
-            "context_length": model.context_length, "license": model.license,
+            "context_length": model.context_length,
+            "license": model.license,
         },
         "target_quant": target_quant,
         "context_length": context_length,

@@ -4,7 +4,9 @@ from whichllm.models.grouper import group_models
 from whichllm.models.types import ModelInfo
 
 
-def _make_model(id: str, base_model: str | None = None, downloads: int = 100) -> ModelInfo:
+def _make_model(
+    id: str, base_model: str | None = None, downloads: int = 100
+) -> ModelInfo:
     return ModelInfo(
         id=id,
         family_id=id,
@@ -17,7 +19,9 @@ def _make_model(id: str, base_model: str | None = None, downloads: int = 100) ->
 
 def test_group_by_base_model():
     base = _make_model("meta/Llama-3-8B", downloads=1000)
-    gguf = _make_model("user/Llama-3-8B-GGUF", base_model="meta/Llama-3-8B", downloads=500)
+    gguf = _make_model(
+        "user/Llama-3-8B-GGUF", base_model="meta/Llama-3-8B", downloads=500
+    )
     families = group_models([base, gguf])
     assert len(families) == 1
     assert families[0].base_model.id in ("meta/Llama-3-8B", "user/Llama-3-8B-GGUF")
@@ -44,7 +48,9 @@ def test_empty_input():
 
 def test_family_id_set():
     base = _make_model("meta/Llama-3-8B", downloads=1000)
-    gguf = _make_model("user/Llama-3-8B-GGUF", base_model="meta/Llama-3-8B", downloads=500)
+    gguf = _make_model(
+        "user/Llama-3-8B-GGUF", base_model="meta/Llama-3-8B", downloads=500
+    )
     families = group_models([base, gguf])
     for family in families:
         assert family.family_id

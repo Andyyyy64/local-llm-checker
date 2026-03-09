@@ -32,4 +32,6 @@ def test_estimate_weight_bytes_for_awq():
 def test_awq_vram_is_lower_than_fp16_fallback():
     awq = _make_model("Qwen/Qwen2.5-14B-Instruct-AWQ")
     fp16 = _make_model("Qwen/Qwen2.5-14B-Instruct")
-    assert estimate_vram(awq, None, context_length=4096) < estimate_vram(fp16, None, context_length=4096)
+    assert estimate_vram(awq, None, context_length=4096) < estimate_vram(
+        fp16, None, context_length=4096
+    )

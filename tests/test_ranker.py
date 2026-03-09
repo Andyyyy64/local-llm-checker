@@ -43,8 +43,16 @@ def test_ranker_picks_highest_scoring_variant():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="test-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_500_000_000),
-            GGUFVariant(filename="test-F16.gguf", quant_type="F16", file_size_bytes=5_000_000_000),
+            GGUFVariant(
+                filename="test-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=4_500_000_000,
+            ),
+            GGUFVariant(
+                filename="test-F16.gguf",
+                quant_type="F16",
+                file_size_bytes=5_000_000_000,
+            ),
         ],
     )
     hw = _make_hardware()
@@ -94,10 +102,16 @@ def test_darwin_backend_filters_out_non_gguf_models():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="a-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_000_000_000),
+            GGUFVariant(
+                filename="a-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=4_000_000_000,
+            ),
         ],
     )
-    hw = _make_hardware(vram_gb=16, bandwidth_gbps=200.0, vendor="apple", os_name="darwin")
+    hw = _make_hardware(
+        vram_gb=16, bandwidth_gbps=200.0, vendor="apple", os_name="darwin"
+    )
     results = rank_models([awq_model, gguf_model], hw, top_n=10)
     assert len(results) == 1
     assert results[0].model.id == "Qwen/Qwen3-8B-GGUF"
@@ -120,7 +134,11 @@ def test_cpu_only_backend_filters_out_non_gguf_models():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="a-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_000_000_000),
+            GGUFVariant(
+                filename="a-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=4_000_000_000,
+            ),
         ],
     )
     hw = _make_hardware(with_gpu=False, os_name="linux")
@@ -138,7 +156,11 @@ def test_popularity_has_no_effect_with_direct_benchmark():
         downloads=100,
         likes=5,
         gguf_variants=[
-            GGUFVariant(filename="test-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_500_000_000),
+            GGUFVariant(
+                filename="test-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=4_500_000_000,
+            ),
         ],
     )
     model_high_pop = ModelInfo(
@@ -149,7 +171,11 @@ def test_popularity_has_no_effect_with_direct_benchmark():
         downloads=1_000_000,
         likes=10_000,
         gguf_variants=[
-            GGUFVariant(filename="test-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_500_000_000),
+            GGUFVariant(
+                filename="test-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=4_500_000_000,
+            ),
         ],
     )
     hw = _make_hardware()
@@ -175,7 +201,11 @@ def test_general_profile_excludes_specialized_models():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="a-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_000_000_000),
+            GGUFVariant(
+                filename="a-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=4_000_000_000,
+            ),
         ],
     )
     coding_model = ModelInfo(
@@ -186,7 +216,11 @@ def test_general_profile_excludes_specialized_models():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="b-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_000_000_000),
+            GGUFVariant(
+                filename="b-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=4_000_000_000,
+            ),
         ],
     )
     hw = _make_hardware()
@@ -213,7 +247,11 @@ def test_require_direct_top_prioritizes_direct_benchmark():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="d-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_000_000_000),
+            GGUFVariant(
+                filename="d-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=4_000_000_000,
+            ),
         ],
     )
     estimated_model = ModelInfo(
@@ -224,7 +262,11 @@ def test_require_direct_top_prioritizes_direct_benchmark():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="e-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=5_000_000_000),
+            GGUFVariant(
+                filename="e-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=5_000_000_000,
+            ),
         ],
     )
     hw = _make_hardware()
@@ -253,7 +295,11 @@ def test_min_params_filter_excludes_small_models():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="s-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=1_700_000_000),
+            GGUFVariant(
+                filename="s-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=1_700_000_000,
+            ),
         ],
     )
     large = ModelInfo(
@@ -264,7 +310,11 @@ def test_min_params_filter_excludes_small_models():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="l-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_000_000_000),
+            GGUFVariant(
+                filename="l-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=4_000_000_000,
+            ),
         ],
     )
     hw = _make_hardware()
@@ -335,7 +385,11 @@ def test_family_dedup_prefers_direct_when_enabled():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="x-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_000_000_000),
+            GGUFVariant(
+                filename="x-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=4_000_000_000,
+            ),
         ],
     )
     hw = _make_hardware(vram_gb=16, bandwidth_gbps=272.0)
@@ -397,7 +451,11 @@ def test_evidence_strict_filters_out_estimated_models():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="d-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=4_000_000_000),
+            GGUFVariant(
+                filename="d-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=4_000_000_000,
+            ),
         ],
     )
     estimated_model = ModelInfo(
@@ -408,7 +466,11 @@ def test_evidence_strict_filters_out_estimated_models():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="e-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=8_000_000_000),
+            GGUFVariant(
+                filename="e-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=8_000_000_000,
+            ),
         ],
     )
     hw = _make_hardware(vram_gb=24, bandwidth_gbps=300.0)
@@ -454,7 +516,11 @@ def test_evidence_base_keeps_base_model_match_and_drops_line_interp():
         downloads=1000,
         likes=100,
         gguf_variants=[
-            GGUFVariant(filename="f-Q4_K_M.gguf", quant_type="Q4_K_M", file_size_bytes=8_000_000_000),
+            GGUFVariant(
+                filename="f-Q4_K_M.gguf",
+                quant_type="Q4_K_M",
+                file_size_bytes=8_000_000_000,
+            ),
         ],
     )
     hw = _make_hardware(vram_gb=24, bandwidth_gbps=300.0)

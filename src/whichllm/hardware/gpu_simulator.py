@@ -56,7 +56,7 @@ def _substring_search(db, name: str):
         idx = db_name.upper().find(name_upper)
         if idx < 0:
             continue
-        after = db_name[idx + len(name):]
+        after = db_name[idx + len(name) :]
         # Accept if nothing follows, or what follows is VRAM/form-factor spec
         # Reject if a variant suffix follows (Ti, SUPER, Mobile, Max-Q, etc.)
         if not after or re.match(r"^(\s+(\d|GA\d|PCIe|SXM|NVL|CNX))", after):
@@ -104,7 +104,9 @@ def _lookup_dbgpu(name: str):
     try:
         from thefuzz import fuzz, process
 
-        results = process.extract(normalized, db.names, limit=3, scorer=fuzz.token_set_ratio)
+        results = process.extract(
+            normalized, db.names, limit=3, scorer=fuzz.token_set_ratio
+        )
         if results and results[0][1] >= 90:
             return db[results[0][0]]
         # Store top suggestions for error messages

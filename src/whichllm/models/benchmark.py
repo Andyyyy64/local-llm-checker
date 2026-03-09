@@ -325,7 +325,9 @@ def _extract_model_lines(model_id: str) -> list[str]:
     # Remove size suffix: -32b, -70b, -0.6b, -235b-a22b, etc.
     # Allows trailing -instruct, -chat, -it, -base, -thinking, and arbitrary suffixes
     cleaned = re.sub(
-        r"-\d+(\.\d+)?b(-a\d+b)?(-[a-z][-a-z0-9]*)*$", "", stripped,
+        r"-\d+(\.\d+)?b(-a\d+b)?(-[a-z][-a-z0-9]*)*$",
+        "",
+        stripped,
     )
     if cleaned != stripped and "/" in cleaned:
         lines.append(cleaned)
@@ -418,7 +420,9 @@ def build_line_bucket_index(
     return buckets
 
 
-def _try_lookup(candidate: str, scores: dict[str, float], ci_index: dict[str, float]) -> float | None:
+def _try_lookup(
+    candidate: str, scores: dict[str, float], ci_index: dict[str, float]
+) -> float | None:
     """Try exact match, then case-insensitive match."""
     if candidate in scores:
         return scores[candidate]
@@ -502,18 +506,28 @@ def lookup_benchmark_evidence(
         for candidate in _generate_candidates(base_model):
             result = _try_lookup(candidate, scores, ci_index)
             if result is not None:
-                return BenchmarkEvidence(score=result, confidence=0.60, source="base_model")
+                return BenchmarkEvidence(
+                    score=result, confidence=0.60, source="base_model"
+                )
 
     # Fallback: size-aware interpolation within model line.
-    size_hint = _extract_params_b_from_id(model_id) or _extract_params_b_from_id(base_model or "")
+    size_hint = _extract_params_b_from_id(model_id) or _extract_params_b_from_id(
+        base_model or ""
+    )
     for mid in (model_id, base_model):
         if mid:
             for line in _extract_model_lines(mid):
                 if line in line_bucket_index:
-                    score, conf = _interpolate_line_score(line_bucket_index[line], size_hint)
+                    score, conf = _interpolate_line_score(
+                        line_bucket_index[line], size_hint
+                    )
                     if score > 0:
-                        return BenchmarkEvidence(score=score, confidence=conf, source="line_interp")
+                        return BenchmarkEvidence(
+                            score=score, confidence=conf, source="line_interp"
+                        )
                 if line in line_index:
-                    return BenchmarkEvidence(score=line_index[line], confidence=0.22, source="line_interp")
+                    return BenchmarkEvidence(
+                        score=line_index[line], confidence=0.22, source="line_interp"
+                    )
 
     return BenchmarkEvidence(score=None, confidence=0.0, source="none")
