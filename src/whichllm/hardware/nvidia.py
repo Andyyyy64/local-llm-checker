@@ -46,7 +46,7 @@ def detect_nvidia_gpus() -> list[GPUInfo]:
         count = pynvml.nvmlDeviceGetCount()
         # Get CUDA driver version
         try:
-            driver_version = pynvml.nvmlSystemGetDriverVersion()
+            pynvml.nvmlSystemGetDriverVersion()  # ensure driver is accessible
             cuda_version = pynvml.nvmlSystemGetCudaDriverVersion_v2()
             cuda_str = f"{cuda_version // 1000}.{(cuda_version % 1000) // 10}"
         except Exception:
