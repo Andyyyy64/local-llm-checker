@@ -181,6 +181,8 @@ def display_hardware(hw: HardwareInfo) -> None:
                 extra.append(f"CUDA {gpu.cuda_version}")
             if gpu.rocm_version:
                 extra.append(f"ROCm {gpu.rocm_version}")
+            if gpu.vendor == "intel":
+                extra.append("shared memory")
             extra_str = f" ({', '.join(extra)})" if extra else ""
             lines.append(
                 f"[bold green]GPU {i}:[/] {gpu.name} — {vram}{extra_str} — BW: {bw}"
