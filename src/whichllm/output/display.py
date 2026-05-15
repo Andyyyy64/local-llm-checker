@@ -163,7 +163,11 @@ def display_hardware(hw: HardwareInfo) -> None:
     # GPUs
     if hw.gpus:
         for i, gpu in enumerate(hw.gpus):
-            vram = _format_bytes(gpu.vram_bytes)
+            vram = (
+                "shared memory"
+                if gpu.vendor == "intel" and gpu.vram_bytes == 0
+                else _format_bytes(gpu.vram_bytes)
+            )
             bw = (
                 f"{gpu.memory_bandwidth_gbps:.0f} GB/s"
                 if gpu.memory_bandwidth_gbps
@@ -181,7 +185,7 @@ def display_hardware(hw: HardwareInfo) -> None:
                 extra.append(f"CUDA {gpu.cuda_version}")
             if gpu.rocm_version:
                 extra.append(f"ROCm {gpu.rocm_version}")
-            if gpu.vendor == "intel":
+            if gpu.vendor == "intel" and gpu.vram_bytes > 0:
                 extra.append("shared memory")
             extra_str = f" ({', '.join(extra)})" if extra else ""
             lines.append(
