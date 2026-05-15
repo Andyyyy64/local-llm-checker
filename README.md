@@ -136,10 +136,10 @@ print(output["choices"][0]["message"]["content"])
 
 ## Install
 
-### pipx (recommended)
+### uv (recommended)
 
 ```bash
-pipx install whichllm
+uv tool install whichllm
 ```
 
 ### Homebrew
