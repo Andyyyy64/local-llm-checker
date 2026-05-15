@@ -355,6 +355,7 @@ def fetch_benchmark_scores() -> dict[str, float]:
         fetch_aa_index_scores,
         fetch_aider_polyglot_scores,
         fetch_livebench_scores,
+        fetch_vision_scores,
     )
 
     # Layered merge: build a "current" dict from live sources (AA, LiveBench,
@@ -420,6 +421,19 @@ def fetch_benchmark_scores() -> dict[str, float]:
             logger.debug(f"Aider polyglot: {len(aider_scores)} scores (current, 0.85x)")
         except Exception as e:
             logger.debug(f"Aider fetch failed: {e}")
+
+        # Current tier: vision-language capability index. Text leaderboards
+        # don't score VLMs, so without this the only VLM with a direct hit
+        # was a two-generations-old Qwen2-VL-7B. Profile filtering ensures
+        # these scores only affect ``--profile vision`` rankings.
+        try:
+            vision_scores = fetch_vision_scores(client)
+            for k, v in vision_scores.items():
+                if current.get(k, 0.0) < v:
+                    current[k] = v
+            logger.debug(f"Vision: {len(vision_scores)} scores (current)")
+        except Exception as e:
+            logger.debug(f"Vision fetch failed: {e}")
 
     # Build combined: current overrides frozen entry-by-entry, but frozen still
     # contributes for any id no current source has tracked.
