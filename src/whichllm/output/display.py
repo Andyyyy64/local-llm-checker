@@ -337,6 +337,13 @@ def display_ranking(
         f"  Top pick confidence: [{confidence_style}]{confidence}[/{confidence_style}] ({reason})"
     )
 
+    from whichllm.models.benchmark_sources import BENCHMARK_SNAPSHOT
+
+    console.print(
+        f"  [dim]Benchmark reference: {BENCHMARK_SNAPSHOT} curated snapshot; "
+        "live AA / LiveBench / Aider merged when reachable.[/dim]"
+    )
+
     # 上位が僅差なら「断定しすぎない」ための注意を表示する
     if len(results) >= 2:
         gap = results[0].quality_score - results[1].quality_score
@@ -709,7 +716,9 @@ def _summarize_row(name: str, hw: HardwareInfo, results: list) -> dict:
         "top_tok_s": float(r.estimated_tok_per_sec),
         "top_fit": r.fit_type,
         "top_quant": (
-            r.gguf_variant.quant_type if r.gguf_variant else effective_quant_type(r.model, None)
+            r.gguf_variant.quant_type
+            if r.gguf_variant
+            else effective_quant_type(r.model, None)
         ),
     }
 
@@ -734,9 +743,7 @@ def display_upgrade(
 ) -> None:
     """Render the GPU-upgrade comparison table."""
     current_row = _summarize_row("Current", current_hw, current_results)
-    target_rows = [
-        _summarize_row(name, hw, res) for name, hw, res in target_results
-    ]
+    target_rows = [_summarize_row(name, hw, res) for name, hw, res in target_results]
 
     table = Table(
         title="GPU upgrade comparison",
