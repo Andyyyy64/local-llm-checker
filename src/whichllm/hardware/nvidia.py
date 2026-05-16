@@ -1,8 +1,10 @@
-"""NVIDIA GPU detection via pynvml."""
+"""NVIDIA GPU detection via NVML with nvidia-smi fallback."""
 
 from __future__ import annotations
 
 import logging
+import re
+import subprocess
 
 from whichllm.constants import GPU_BANDWIDTH, NVIDIA_COMPUTE_CAPABILITY
 from whichllm.hardware.types import GPUInfo
@@ -27,19 +29,63 @@ def _lookup_bandwidth(name: str) -> float | None:
     return None
 
 
+def _detect_nvidia_gpus_via_smi() -> list[GPUInfo]:
+    """Detect NVIDIA GPUs using nvidia-smi when Python NVML cannot load."""
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,memory.total",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            check=True,
+            text=True,
+            timeout=5,
+        )
+    except (FileNotFoundError, subprocess.SubprocessError, OSError) as e:
+        logger.debug(f"nvidia-smi fallback failed: {e}")
+        return []
+
+    gpus: list[GPUInfo] = []
+    for line in result.stdout.splitlines():
+        parts = [part.strip() for part in line.split(",", maxsplit=1)]
+        if len(parts) != 2 or not parts[0]:
+            continue
+
+        name, memory_mib_text = parts
+        match = re.search(r"\d+", memory_mib_text)
+        if not match:
+            logger.debug(f"Could not parse nvidia-smi memory value: {line!r}")
+            continue
+
+        memory_mib = int(match.group(0))
+        gpus.append(
+            GPUInfo(
+                name=name,
+                vendor="nvidia",
+                vram_bytes=memory_mib * 1024**2,
+                compute_capability=_lookup_compute_capability(name),
+                memory_bandwidth_gbps=_lookup_bandwidth(name),
+            )
+        )
+
+    return gpus
+
+
 def detect_nvidia_gpus() -> list[GPUInfo]:
-    """Detect NVIDIA GPUs using pynvml. Returns empty list on failure."""
+    """Detect NVIDIA GPUs. Returns empty list on failure."""
     try:
         import pynvml
     except ImportError:
-        logger.debug("pynvml not installed, skipping NVIDIA detection")
-        return []
+        logger.debug("pynvml not installed, trying nvidia-smi fallback")
+        return _detect_nvidia_gpus_via_smi()
 
     try:
         pynvml.nvmlInit()
     except pynvml.NVMLError:
-        logger.debug("NVML init failed, no NVIDIA driver available")
-        return []
+        logger.debug("NVML init failed, trying nvidia-smi fallback")
+        return _detect_nvidia_gpus_via_smi()
 
     gpus: list[GPUInfo] = []
     try:
@@ -78,4 +124,8 @@ def detect_nvidia_gpus() -> list[GPUInfo]:
         except Exception:
             pass
 
-    return gpus
+    if gpus:
+        return gpus
+
+    logger.debug("NVML returned no NVIDIA GPUs, trying nvidia-smi fallback")
+    return _detect_nvidia_gpus_via_smi()
