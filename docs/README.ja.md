@@ -173,8 +173,9 @@ src/whichllm/
 
 - Python 3.11+
 - NVIDIA GPU検出は `nvidia-ml-py` と `nvidia-smi` fallback
-- AMD GPU検出は Linux / ROCm / sysfs / lspci
-- Intel iGPU検出は Linux / sysfs / lspci
+- AMD GPU検出は Linux / ROCm / sysfs / lspci と Windows fallback
+- Intel GPU検出は Linux / sysfs / lspci と Windows fallback
+- Strix Halo、Ryzen AI MAX、Radeon 890M 系は shared memory APU として扱う
 - Apple Silicon検出は macOS / `system_profiler`
 
 ## ライセンス

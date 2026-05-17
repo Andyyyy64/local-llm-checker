@@ -21,14 +21,15 @@ to be working.
 
 If an AMD GPU is missing:
 
-- Linux is the supported AMD GPU detection path
-- check `rocm-smi`
-- check `lspci`
-- check `/sys/class/drm`
+- on Linux, check `rocm-smi`, `lspci`, and `/sys/class/drm`
+- on Windows, check that PowerShell can read `Win32_VideoController`
+- for Ryzen AI / Radeon integrated graphics, check whether `whichllm hardware`
+  shows shared memory instead of a tiny 512 MB or 4 GB adapter
 
 If an Intel iGPU is missing:
 
 - Linux detection uses `lspci` or `/sys/class/drm`
+- Windows detection uses `Win32_VideoController`
 - many Intel iGPUs do not expose dedicated VRAM, so they may be shown as shared
   memory graphics
 
@@ -183,8 +184,13 @@ Apple Silicon uses unified memory. Partial offload does not cross a discrete
 PCIe boundary, so whichllm applies a milder speed penalty than it does for
 discrete GPUs.
 
-The same is true for recognized AMD shared-memory APUs such as Strix Halo and
-Ryzen AI MAX.
+The same is true for recognized AMD shared-memory APUs such as Strix Halo,
+Ryzen AI MAX, and Ryzen AI / Radeon 890M-class integrated graphics.
+
+On Windows, `Win32_VideoController.AdapterRAM` can cap around 4 GB. whichllm
+uses the 64-bit registry memory value when it is available, and treats known
+shared-memory APUs as unified-memory style devices instead of tiny discrete
+GPUs.
 
 ## `run` says `uv is required`
 

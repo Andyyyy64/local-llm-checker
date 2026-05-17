@@ -17,6 +17,19 @@ def _gpu_available_memory(gpu: GPUInfo, usable_ram: int) -> int:
     return gpu.vram_bytes
 
 
+def _uses_shared_system_pool(gpu: GPUInfo) -> bool:
+    return gpu.shared_memory and gpu.vram_bytes < 2 * _GiB
+
+
+def _fit_candidate_gpus(gpus: list[GPUInfo]) -> list[GPUInfo]:
+    has_dedicated_gpu = any(
+        not _uses_shared_system_pool(gpu) and gpu.vram_bytes > 0 for gpu in gpus
+    )
+    if not has_dedicated_gpu:
+        return gpus
+    return [gpu for gpu in gpus if not _uses_shared_system_pool(gpu)]
+
+
 def check_compatibility(
     model: ModelInfo,
     variant: GGUFVariant | None,
@@ -35,7 +48,8 @@ def check_compatibility(
     best_gpu: GPUInfo | None = None
     best_gpu_available = 0
     total_vram = 0
-    for gpu in hardware.gpus:
+    candidate_gpus = _fit_candidate_gpus(hardware.gpus)
+    for gpu in candidate_gpus:
         gpu_available = _gpu_available_memory(gpu, usable_ram)
         total_vram += gpu_available
         if best_gpu is None or gpu_available > best_gpu_available:
@@ -53,8 +67,13 @@ def check_compatibility(
                 f"minimum {MIN_COMPUTE_CAPABILITY_OLLAMA} for Ollama"
             )
 
-    # Check ROCm for AMD
-    if best_gpu and best_gpu.vendor == "amd" and hardware.os != "linux":
+    # Check ROCm for AMD. Windows AMD users can still use Vulkan/DirectML
+    # backends, so do not label the GPU path as unavailable there.
+    if (
+        best_gpu
+        and best_gpu.vendor == "amd"
+        and hardware.os not in ("linux", "windows")
+    ):
         warnings.append("ROCm requires Linux for AMD GPU inference")
 
     # Check Metal for Apple

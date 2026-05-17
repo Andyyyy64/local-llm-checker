@@ -93,6 +93,68 @@ def test_shared_memory_amd_apu_uses_system_memory_pool():
     assert not any("cpu only" in w.lower() for w in result.warnings)
 
 
+def test_windows_shared_memory_amd_apu_does_not_emit_rocm_warning():
+    model = _make_model(8_000_000_000)
+    variant = _make_variant(6_000_000_000)
+    hw = HardwareInfo(
+        gpus=[
+            GPUInfo(
+                name="AMD Ryzen AI 9 HX 370 w/ Radeon 890M",
+                vendor="amd",
+                vram_bytes=0,
+                memory_bandwidth_gbps=120.0,
+                shared_memory=True,
+            )
+        ],
+        cpu_name="AMD Ryzen AI 9 HX 370",
+        cpu_cores=12,
+        ram_bytes=16 * 1024**3,
+        disk_free_bytes=100 * 1024**3,
+        os="windows",
+    )
+
+    result = check_compatibility(model, variant, hw)
+
+    assert result.can_run is True
+    assert result.fit_type == "full_gpu"
+    assert result.vram_available_bytes == int(hw.ram_bytes * 0.80)
+    assert not any("rocm" in w.lower() for w in result.warnings)
+    assert not any("offload" in w.lower() for w in result.warnings)
+
+
+def test_shared_memory_igpu_is_not_summed_with_dedicated_gpu():
+    model = _make_model(20_000_000_000)
+    variant = _make_variant(14 * 1024**3)
+    hw = HardwareInfo(
+        gpus=[
+            GPUInfo(
+                name="NVIDIA GeForce RTX 4060",
+                vendor="nvidia",
+                vram_bytes=8 * 1024**3,
+                memory_bandwidth_gbps=272.0,
+            ),
+            GPUInfo(
+                name="Intel(R) Arc(TM) Graphics",
+                vendor="intel",
+                vram_bytes=0,
+                shared_memory=True,
+            ),
+        ],
+        cpu_name="Intel CPU",
+        cpu_cores=12,
+        ram_bytes=32 * 1024**3,
+        disk_free_bytes=100 * 1024**3,
+        os="windows",
+    )
+
+    result = check_compatibility(model, variant, hw)
+
+    assert result.can_run is True
+    assert result.fit_type == "partial_offload"
+    assert result.vram_available_bytes == 8 * 1024**3
+    assert any("offloaded to CPU RAM" in w for w in result.warnings)
+
+
 def test_cpu_only():
     model = _make_model(1_000_000_000)
     variant = _make_variant(600_000_000)

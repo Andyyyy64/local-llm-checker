@@ -42,6 +42,7 @@ returns an empty result on failure.
 | `hardware/nvidia.py` | Uses `nvidia-ml-py`; falls back to `nvidia-smi` |
 | `hardware/amd.py` | Uses `rocm-smi`; falls back to `lspci` and `/sys/class/drm` |
 | `hardware/intel.py` | Detects Linux Intel iGPUs through `lspci` or sysfs |
+| `hardware/windows.py` | Detects Windows AMD and Intel fallback GPUs through WMI and registry memory fields |
 | `hardware/apple.py` | Uses `system_profiler` on macOS |
 | `hardware/cpu.py` | Reads CPU name, physical cores, AVX2, and AVX-512 |
 | `hardware/memory.py` | Reads RAM and disk free space |

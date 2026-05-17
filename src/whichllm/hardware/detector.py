@@ -12,6 +12,7 @@ from whichllm.hardware.intel import detect_intel_gpus
 from whichllm.hardware.memory import detect_disk_free_bytes, detect_ram_bytes
 from whichllm.hardware.nvidia import detect_nvidia_gpus
 from whichllm.hardware.types import HardwareInfo
+from whichllm.hardware.windows import detect_windows_gpus
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,8 @@ def detect_hardware() -> HardwareInfo:
         gpus.extend(detect_intel_gpus())
     if os_name == "darwin":
         gpus.extend(detect_apple_gpu())
+    if os_name == "windows":
+        gpus.extend(detect_windows_gpus())
 
     # CPU
     cpu_name = detect_cpu_name()
