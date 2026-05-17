@@ -58,6 +58,123 @@ def test_dicts_to_models_normalizes_cached_parameter_count():
     assert models[0].parameter_count == 27_000_000_000
 
 
+def test_dicts_to_models_refreshes_cached_deepseek_v4_flash_counts():
+    models = dicts_to_models(
+        [
+            {
+                "id": "deepseek-ai/DeepSeek-V4-Flash",
+                "family_id": "deepseek-v4-flash",
+                "name": "DeepSeek-V4-Flash",
+                "parameter_count": 158_069_433_298,
+                "parameter_count_active": 10_000_000_000,
+                "downloads": 1,
+                "likes": 1,
+                "gguf_variants": [],
+                "benchmark_scores": {},
+            }
+        ]
+    )
+
+    assert len(models) == 1
+    assert models[0].parameter_count == 284_000_000_000
+    assert models[0].parameter_count_active == 13_000_000_000
+    assert models[0].is_moe is True
+
+
+def test_dicts_to_models_uses_case_insensitive_curated_active_params():
+    models = dicts_to_models(
+        [
+            {
+                "id": "google/gemma-4-26B-A4B-it",
+                "family_id": "gemma-4-26b-a4b",
+                "name": "gemma-4-26B-A4B-it",
+                "parameter_count": 26_544_131_376,
+                "parameter_count_active": None,
+                "downloads": 1,
+                "likes": 1,
+                "gguf_variants": [],
+                "benchmark_scores": {},
+            }
+        ]
+    )
+
+    assert len(models) == 1
+    assert models[0].parameter_count_active == 3_800_000_000
+    assert models[0].is_moe is True
+
+
+def test_dicts_to_models_refreshes_stale_xiaomi_moe_cache_counts():
+    models = dicts_to_models(
+        [
+            {
+                "id": "XiaomiMiMo/MiMo-V2.5-Pro",
+                "family_id": "mimo-v2.5-pro",
+                "name": "MiMo-V2.5-Pro",
+                "parameter_count": 58_000_000_000,
+                "parameter_count_active": 11_000_000_000,
+                "downloads": 1,
+                "likes": 1,
+                "gguf_variants": [],
+                "benchmark_scores": {},
+            }
+        ]
+    )
+
+    assert len(models) == 1
+    assert models[0].parameter_count == 1_020_000_000_000
+    assert models[0].parameter_count_active == 42_000_000_000
+    assert models[0].is_moe is True
+
+
+def test_dicts_to_models_recovers_missing_known_parameter_count():
+    models = dicts_to_models(
+        [
+            {
+                "id": "zai-org/GLM-5",
+                "family_id": "glm-5",
+                "name": "GLM-5",
+                "parameter_count": 0,
+                "parameter_count_active": None,
+                "downloads": 1,
+                "likes": 1,
+                "gguf_variants": [],
+                "benchmark_scores": {},
+            }
+        ]
+    )
+
+    assert len(models) == 1
+    assert models[0].parameter_count == 744_000_000_000
+    assert models[0].parameter_count_active == 40_000_000_000
+    assert models[0].is_moe is True
+
+
+def test_parse_model_uses_current_glm5_and_xiaomi_active_counts():
+    glm = _parse_model(
+        {
+            "id": "zai-org/GLM-5",
+            "config": {"architectures": ["GlmForCausalLM"]},
+            "safetensors": {"total": 753_864_139_008},
+            "siblings": [],
+            "cardData": {},
+        }
+    )
+    mimo = _parse_model(
+        {
+            "id": "XiaomiMiMo/MiMo-V2-Flash",
+            "config": {"architectures": ["LlamaForCausalLM"]},
+            "safetensors": {"total": 309_785_318_400},
+            "siblings": [],
+            "cardData": {},
+        }
+    )
+
+    assert glm is not None
+    assert glm.parameter_count_active == 40_000_000_000
+    assert mimo is not None
+    assert mimo.parameter_count_active == 15_000_000_000
+
+
 def test_models_cache_roundtrip_keeps_published_at():
     models = [
         ModelInfo(
@@ -182,3 +299,35 @@ def test_parse_model_extracts_hf_eval_benchmark_score():
     )
     assert parsed is not None
     assert parsed.benchmark_scores.get("hf_eval") == 66.4
+
+
+def test_deepseek_v4_flash_uses_model_card_counts_over_hf_tensor_metadata():
+    """DeepSeek V4 Flash's mixed-precision HF tensor metadata reports a
+    smaller stored tensor count than the model-card total. Ranking and GGUF
+    synthesis must use the published model capacity instead."""
+
+    parsed = _parse_model(
+        {
+            "id": "deepseek-ai/DeepSeek-V4-Flash",
+            "config": {
+                "architectures": ["DeepseekV4ForCausalLM"],
+                "model_type": "deepseek_v4",
+                "quantization_config": {"quant_method": "fp8"},
+            },
+            "safetensors": {
+                "total": 158_069_433_298,
+                "parameters": {
+                    "BF16": 1_415_259_264,
+                    "F8_E8M0": 8_858_737_664,
+                    "F8_E4M3": 6_023_020_544,
+                    "I8": 141_733_920_768,
+                },
+            },
+            "siblings": [],
+            "cardData": {},
+        }
+    )
+
+    assert parsed is not None
+    assert parsed.parameter_count == 284_000_000_000
+    assert parsed.parameter_count_active == 13_000_000_000

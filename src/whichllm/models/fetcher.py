@@ -126,14 +126,32 @@ def _is_quantized_repo_name(model_id: str) -> bool:
     return bool(re.search(r"(gptq|awq|bnb|4bit|int4|int8|fp8|gguf|quant)", lower))
 
 
+def _lookup_curated_count(mapping: dict[str, int], model_id: str) -> int | None:
+    value = mapping.get(model_id)
+    if value is not None:
+        return value
+
+    model_id_folded = model_id.casefold()
+    for key, value in mapping.items():
+        if key.casefold() == model_id_folded:
+            return value
+    return None
+
+
 def _normalize_param_count(
     extracted: int,
     model_id: str,
     base_model: str | None,
 ) -> int:
     """Normalize parameter count when metadata is inconsistent."""
+    authoritative = _lookup_curated_count(_AUTHORITATIVE_PARAM_COUNTS, model_id)
+    if authoritative and authoritative > 0:
+        return authoritative
+    known = _lookup_curated_count(_KNOWN_PARAM_COUNTS, model_id)
     if extracted <= 0:
-        return extracted
+        return known or extracted
+    if known and extracted < int(known * 0.35):
+        return known
 
     hints = [
         h
@@ -200,25 +218,25 @@ _KNOWN_MOE_ACTIVE_PARAMS: dict[str, int] = {
     "deepseek-ai/DeepSeek-V3.2-Exp": 37_000_000_000,
     "deepseek-ai/DeepSeek-R1": 37_000_000_000,
     "deepseek-ai/DeepSeek-R1-0528": 37_000_000_000,
-    "deepseek-ai/DeepSeek-V4-Pro": 50_000_000_000,
-    "deepseek-ai/DeepSeek-V4-Flash": 10_000_000_000,
+    "deepseek-ai/DeepSeek-V4-Pro": 49_000_000_000,
+    "deepseek-ai/DeepSeek-V4-Flash": 13_000_000_000,
     "zai-org/GLM-4.5": 32_000_000_000,
     "zai-org/GLM-4.5-Air": 12_000_000_000,
     "zai-org/GLM-4.6": 32_000_000_000,
     "zai-org/GLM-4.7": 32_000_000_000,
     "zai-org/GLM-4.7-Flash": 12_000_000_000,
-    "zai-org/GLM-5": 60_000_000_000,
-    "zai-org/GLM-5-FP8": 60_000_000_000,
-    "zai-org/GLM-5.1": 60_000_000_000,
-    "zai-org/GLM-5.1-FP8": 60_000_000_000,
+    "zai-org/GLM-5": 40_000_000_000,
+    "zai-org/GLM-5-FP8": 40_000_000_000,
+    "zai-org/GLM-5.1": 40_000_000_000,
+    "zai-org/GLM-5.1-FP8": 40_000_000_000,
     "moonshotai/Kimi-K2-Instruct": 32_000_000_000,
     "moonshotai/Kimi-K2-Thinking": 32_000_000_000,
     "MiniMaxAI/MiniMax-M2": 10_000_000_000,
     "MiniMaxAI/MiniMax-M2.5": 10_000_000_000,
-    "XiaomiMiMo/MiMo-V2.5": 7_000_000_000,
-    "XiaomiMiMo/MiMo-V2.5-Pro": 11_000_000_000,
-    "XiaomiMiMo/MiMo-V2-Flash": 3_000_000_000,
-    "google/gemma-4-26b-a4b-it": 4_000_000_000,
+    "XiaomiMiMo/MiMo-V2.5": 15_000_000_000,
+    "XiaomiMiMo/MiMo-V2.5-Pro": 42_000_000_000,
+    "XiaomiMiMo/MiMo-V2-Flash": 15_000_000_000,
+    "google/gemma-4-26B-A4B-it": 3_800_000_000,
     "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-BF16": 3_000_000_000,
     "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B-FP8": 3_000_000_000,
     "nvidia/NVIDIA-Nemotron-3-Super-120B-A12B-BF16": 12_000_000_000,
@@ -260,25 +278,34 @@ _KNOWN_PARAM_COUNTS: dict[str, int] = {
     "deepseek-ai/DeepSeek-V3-0324": 671_000_000_000,
     "deepseek-ai/DeepSeek-V3.1": 671_000_000_000,
     "deepseek-ai/DeepSeek-V3.2": 685_000_000_000,
-    "deepseek-ai/DeepSeek-V4-Pro": 720_000_000_000,
-    "deepseek-ai/DeepSeek-V4-Flash": 45_000_000_000,
+    "deepseek-ai/DeepSeek-V4-Pro": 1_600_000_000_000,
+    "deepseek-ai/DeepSeek-V4-Flash": 284_000_000_000,
     "moonshotai/Kimi-K2-Instruct": 1_026_000_000_000,
     "moonshotai/Kimi-K2-Thinking": 1_026_000_000_000,
-    "XiaomiMiMo/MiMo-V2.5": 58_000_000_000,
-    "XiaomiMiMo/MiMo-V2.5-Pro": 58_000_000_000,
-    "XiaomiMiMo/MiMo-V2-Flash": 16_000_000_000,
+    "XiaomiMiMo/MiMo-V2.5": 310_000_000_000,
+    "XiaomiMiMo/MiMo-V2.5-Pro": 1_020_000_000_000,
+    "XiaomiMiMo/MiMo-V2-Flash": 309_000_000_000,
     "zai-org/GLM-4.5": 355_000_000_000,
     "zai-org/GLM-4.5-Air": 106_000_000_000,
     "zai-org/GLM-4.6": 355_000_000_000,
     "zai-org/GLM-4.7": 355_000_000_000,
     "zai-org/GLM-4.7-Flash": 30_000_000_000,
-    "zai-org/GLM-5": 754_000_000_000,
-    "zai-org/GLM-5-FP8": 754_000_000_000,
-    "zai-org/GLM-5.1": 754_000_000_000,
-    "zai-org/GLM-5.1-FP8": 754_000_000_000,
+    "zai-org/GLM-5": 744_000_000_000,
+    "zai-org/GLM-5-FP8": 744_000_000_000,
+    "zai-org/GLM-5.1": 744_000_000_000,
+    "zai-org/GLM-5.1-FP8": 744_000_000_000,
     "MiniMaxAI/MiniMax-M2": 230_000_000_000,
     "MiniMaxAI/MiniMax-M2.5": 230_000_000_000,
     "stepfun-ai/Step-3.5-Flash": 30_000_000_000,
+}
+
+# Curated counts that should win even when the HF API exposes safetensors
+# metadata. Some mixed-precision MoEs publish compressed checkpoint tensor
+# counts that are useful for storage inspection but understate the model-card
+# capacity used for ranking, GGUF synthesis, and VRAM planning.
+_AUTHORITATIVE_PARAM_COUNTS: dict[str, int] = {
+    "deepseek-ai/DeepSeek-V4-Pro": 1_600_000_000_000,
+    "deepseek-ai/DeepSeek-V4-Flash": 284_000_000_000,
 }
 
 
@@ -286,15 +313,21 @@ def _extract_param_count(model_data: dict) -> int:
     """Extract parameter count from model data.
 
     Resolution order:
-      1. safetensors metadata (most reliable when present)
-      2. gguf metadata
-      3. config (estimated from hidden_size + num_layers + vocab_size)
-      4. name-based size hint (e.g. ``Qwen/Qwen3-32B`` → 32B)
-      5. ``_KNOWN_PARAM_COUNTS`` lookup (for models like ``microsoft/phi-4``
+      1. authoritative model-card overrides for known mixed-precision MoEs
+      2. safetensors metadata (most reliable when present)
+      3. gguf metadata
+      4. config (estimated from hidden_size + num_layers + vocab_size)
+      5. name-based size hint (e.g. ``Qwen/Qwen3-32B`` → 32B)
+      6. ``_KNOWN_PARAM_COUNTS`` lookup (for models like ``microsoft/phi-4``
          that have neither indexed metadata nor a size in the repo name)
 
     Returns 0 if none of the above succeed (caller drops the model).
     """
+    model_id = model_data.get("id", "") or ""
+    authoritative = _lookup_curated_count(_AUTHORITATIVE_PARAM_COUNTS, model_id)
+    if authoritative and authoritative > 0:
+        return authoritative
+
     # Try safetensors metadata first
     safetensors = model_data.get("safetensors")
     if safetensors and isinstance(safetensors, dict):
@@ -332,8 +365,7 @@ def _extract_param_count(model_data: dict) -> int:
     # ``_KNOWN_PARAM_COUNTS`` is checked *before* the name hint because it
     # is curated: for Llama-4-Scout-17B-16E (16-expert MoE) the name hint
     # gives 17B (the active size) but the actual VRAM footprint is 109B.
-    model_id = model_data.get("id", "") or ""
-    known = _KNOWN_PARAM_COUNTS.get(model_id)
+    known = _lookup_curated_count(_KNOWN_PARAM_COUNTS, model_id)
     if known and known > 0:
         return known
     name_hint = _extract_size_hint_from_id(model_id)
@@ -418,7 +450,7 @@ def _parse_model(data: dict) -> ModelInfo | None:
     # Known-frontier MoE registry: when HF config lacks expert metadata, fall
     # back to a curated lookup. The total/active values come from each model's
     # release card.
-    known_moe_active = _KNOWN_MOE_ACTIVE_PARAMS.get(model_id)
+    known_moe_active = _lookup_curated_count(_KNOWN_MOE_ACTIVE_PARAMS, model_id)
     is_moe = num_experts > 0 or known_moe_active is not None
     active_params = None
     if is_moe:
@@ -677,8 +709,8 @@ async def fetch_models(
             "openai/gpt-oss-20b",
             "google/gemma-3-27b-it",
             "google/gemma-3-12b-it",
-            "google/gemma-4-31b-it",
-            "google/gemma-4-26b-a4b-it",
+            "google/gemma-4-31B-it",
+            "google/gemma-4-26B-A4B-it",
             "meta-llama/Llama-3.3-70B-Instruct",
             "meta-llama/Llama-4-Maverick-17B-128E-Instruct",
             "meta-llama/Llama-4-Scout-17B-16E-Instruct",
@@ -813,15 +845,18 @@ def dicts_to_models(data: list[dict]) -> list[ModelInfo]:
             d["id"],
             base_model,
         )
+        active_params = _lookup_curated_count(_KNOWN_MOE_ACTIVE_PARAMS, d["id"])
+        if active_params is None:
+            active_params = d.get("parameter_count_active")
         models.append(
             ModelInfo(
                 id=d["id"],
                 family_id=d.get("family_id", d["id"]),
                 name=d["name"],
                 parameter_count=param_count,
-                parameter_count_active=d.get("parameter_count_active"),
+                parameter_count_active=active_params,
                 architecture=d.get("architecture", ""),
-                is_moe=d.get("is_moe", False),
+                is_moe=d.get("is_moe", False) or active_params is not None,
                 context_length=d.get("context_length"),
                 license=d.get("license"),
                 published_at=d.get("published_at"),
