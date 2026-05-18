@@ -213,6 +213,7 @@ def create_synthetic_gpu(name: str, vram_override_gb: float | None = None) -> GP
             vendor=vendor,
             vram_bytes=int(vram_gb * _GiB),
             memory_bandwidth_gbps=bandwidth,
+            shared_memory=True,
         )
 
     spec = _lookup_dbgpu(name)

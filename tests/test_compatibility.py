@@ -155,6 +155,98 @@ def test_shared_memory_igpu_is_not_summed_with_dedicated_gpu():
     assert any("offloaded to CPU RAM" in w for w in result.warnings)
 
 
+def test_apple_silicon_does_not_double_count_unified_memory():
+    """Apple Silicon uses unified memory: vram_bytes IS the system RAM.
+    The fit checker must not add a separate offload pool on top."""
+    model = _make_model(70_000_000_000)
+    variant = _make_variant(40_000_000_000)  # 40 GB model
+    hw = HardwareInfo(
+        gpus=[
+            GPUInfo(
+                name="Apple M2 Max",
+                vendor="apple",
+                vram_bytes=32 * 1024**3,  # 32 GB unified memory
+                memory_bandwidth_gbps=400.0,
+                shared_memory=True,
+            )
+        ],
+        cpu_name="Apple M2 Max",
+        cpu_cores=12,
+        ram_bytes=32 * 1024**3,
+        disk_free_bytes=200 * 1024**3,
+        os="darwin",
+    )
+
+    result = check_compatibility(model, variant, hw)
+
+    # Model (40 GB) exceeds unified memory (32 GB). There is no separate
+    # CPU RAM pool to spill into, so this must NOT be partial_offload.
+    assert result.fit_type != "partial_offload", (
+        "Apple Silicon should not get partial_offload — unified memory "
+        "cannot be double-counted as GPU VRAM + CPU RAM offload pool"
+    )
+    assert not any("offloaded to CPU RAM" in w for w in result.warnings)
+
+
+def test_apple_silicon_full_gpu_fit():
+    """A model that fits within unified memory should be full_gpu."""
+    model = _make_model(7_000_000_000)
+    variant = _make_variant(4_000_000_000)  # 4 GB model
+    hw = HardwareInfo(
+        gpus=[
+            GPUInfo(
+                name="Apple M4 Pro",
+                vendor="apple",
+                vram_bytes=24 * 1024**3,
+                memory_bandwidth_gbps=273.0,
+                shared_memory=True,
+            )
+        ],
+        cpu_name="Apple M4 Pro",
+        cpu_cores=14,
+        ram_bytes=24 * 1024**3,
+        disk_free_bytes=200 * 1024**3,
+        os="darwin",
+    )
+
+    result = check_compatibility(model, variant, hw)
+
+    assert result.can_run is True
+    assert result.fit_type == "full_gpu"
+    assert not any("offload" in w.lower() for w in result.warnings)
+
+
+def test_apple_silicon_vendor_guard_handles_legacy_shared_memory_false():
+    """Even if a cached/older GPUInfo has shared_memory=False, the
+    vendor=='apple' guard should still prevent double-counting."""
+    model = _make_model(70_000_000_000)
+    variant = _make_variant(40_000_000_000)  # 40 GB model
+    hw = HardwareInfo(
+        gpus=[
+            GPUInfo(
+                name="Apple M2 Max",
+                vendor="apple",
+                vram_bytes=32 * 1024**3,
+                memory_bandwidth_gbps=400.0,
+                shared_memory=False,  # legacy/cached object
+            )
+        ],
+        cpu_name="Apple M2 Max",
+        cpu_cores=12,
+        ram_bytes=32 * 1024**3,
+        disk_free_bytes=200 * 1024**3,
+        os="darwin",
+    )
+
+    result = check_compatibility(model, variant, hw)
+
+    assert result.fit_type != "partial_offload", (
+        "vendor='apple' guard must prevent double-counting even when "
+        "shared_memory=False (cached/older GPUInfo)"
+    )
+    assert not any("offloaded to CPU RAM" in w for w in result.warnings)
+
+
 def test_cpu_only():
     model = _make_model(1_000_000_000)
     variant = _make_variant(600_000_000)

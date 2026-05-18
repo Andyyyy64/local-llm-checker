@@ -88,6 +88,11 @@ class TestAppleSiliconAliases:
         assert prefixed.vram_bytes == plain.vram_bytes
         assert prefixed.memory_bandwidth_gbps == plain.memory_bandwidth_gbps
 
+    @pytest.mark.parametrize("chip", ["M1", "M2 Max", "M3 Ultra", "M4 Pro"])
+    def test_apple_silicon_has_shared_memory(self, chip):
+        gpu = create_synthetic_gpu(chip)
+        assert gpu.shared_memory is True
+
 
 class TestVRAMOverride:
     def test_override_known_gpu(self):

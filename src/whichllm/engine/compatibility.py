@@ -57,7 +57,11 @@ def check_compatibility(
             best_gpu_available = gpu_available
 
     vram_available = total_vram if total_vram > 0 else 0
-    offload_ram_available = 0 if best_gpu and best_gpu.shared_memory else usable_ram
+    offload_ram_available = (
+        0
+        if best_gpu and (best_gpu.shared_memory or best_gpu.vendor == "apple")
+        else usable_ram
+    )
 
     # Check compute capability for NVIDIA
     if best_gpu and best_gpu.vendor == "nvidia" and best_gpu.compute_capability:
@@ -94,7 +98,7 @@ def check_compatibility(
             if vram_required > 0
             else 0
         )
-        if best_gpu and best_gpu.shared_memory:
+        if best_gpu and (best_gpu.shared_memory or best_gpu.vendor == "apple"):
             warnings.append("Will use shared system memory")
         else:
             warnings.append(

@@ -60,6 +60,7 @@ def detect_apple_gpu() -> list[GPUInfo]:
                 vendor="apple",
                 vram_bytes=unified_memory,  # unified memory
                 memory_bandwidth_gbps=_lookup_bandwidth(chip_name),
+                shared_memory=True,
             )
         ]
     except (KeyError, IndexError, ValueError) as e:
