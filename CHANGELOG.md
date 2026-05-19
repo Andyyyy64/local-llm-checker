@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.5.7] - 2026-05-20
+
+### Added
+
+- LiveBench fallback data is now kept inline so benchmark scoring remains
+  available without relying on a generated sidecar file.
+
+### Fixed
+
+- DGX Spark / NVIDIA GB10 is now detected as a shared-memory NVIDIA GPU when
+  NVIDIA reports `memory.total` as unavailable.
+- `whichllm run` now provides a Transformers `offload_folder`, avoiding crashes
+  when large models need disk offload.
+- Cache paths now respect `XDG_CACHE_HOME`, including ignoring relative values
+  per the XDG base directory specification.
+- Apple Silicon is now treated as shared memory in fit detection.
+- Benchmark score fetching now runs concurrently.
+
 ## [0.5.6] - 2026-05-18
 
 ### Added
