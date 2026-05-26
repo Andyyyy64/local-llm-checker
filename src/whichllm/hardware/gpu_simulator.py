@@ -129,7 +129,7 @@ def _substring_search(db, name: str):
     return None
 
 
-def _lookup_dbgpu(name: str):
+def _lookup_dbgpu(name: str) -> GPUSpecification | None:
     """Look up GPU spec from dbgpu database. Returns GPUSpecification or None."""
     from dbgpu import GPUDatabase
 
