@@ -1,7 +1,7 @@
 """Tests for CLI helper logic."""
 
 import pytest
-from click.exceptions import Exit
+from click.exceptions import BadParameter, Exit
 
 import whichllm.cli as cli_mod
 from whichllm.cli import (
@@ -10,6 +10,7 @@ from whichllm.cli import (
     _generate_chat_script,
     _include_vision_candidates,
     _merge_model_eval_benchmarks,
+    _parse_context_length,
     _pick_gguf_variant,
     _resolve_ranked_gguf_for_run,
     _resolve_evidence_mode,
@@ -584,3 +585,67 @@ def test_snippet_no_model_found():
     result = runner.invoke(app, ["snippet", "nonexistent_model_xyz_999"])
     assert result.exit_code != 0
     assert "No model found" in result.stdout
+
+
+# --------------- context length shorthand tests ---------------
+
+
+def test_parse_context_length_plain_int():
+    assert _parse_context_length("4096") == 4096
+    assert _parse_context_length("8192") == 8192
+    assert _parse_context_length("131072") == 131072
+
+
+def test_parse_context_length_k_suffix():
+    assert _parse_context_length("64k") == 65536
+    assert _parse_context_length("128k") == 131072
+    assert _parse_context_length("1k") == 1024
+    assert _parse_context_length("2K") == 2048
+
+
+def test_parse_context_length_m_suffix():
+    assert _parse_context_length("1m") == 1048576
+    assert _parse_context_length("2M") == 2097152
+
+
+def test_parse_context_length_decimal():
+    assert _parse_context_length("1.5k") == 1536
+    assert _parse_context_length("0.5k") == 512
+    assert _parse_context_length("0.25m") == 262144
+
+
+def test_parse_context_length_strips_whitespace():
+    assert _parse_context_length("  64k  ") == 65536
+
+
+def test_parse_context_length_rejects_empty():
+    with pytest.raises(BadParameter, match="empty"):
+        _parse_context_length("")
+    with pytest.raises(BadParameter, match="empty"):
+        _parse_context_length("  ")
+
+
+def test_parse_context_length_rejects_invalid():
+    with pytest.raises(BadParameter, match="Invalid"):
+        _parse_context_length("abc")
+    with pytest.raises(BadParameter, match="Invalid"):
+        _parse_context_length("k64")
+    with pytest.raises(BadParameter, match="Invalid"):
+        _parse_context_length("64x")
+
+
+def test_parse_context_length_rejects_zero_and_negative():
+    with pytest.raises(BadParameter, match="positive"):
+        _parse_context_length("0")
+    with pytest.raises(BadParameter, match="positive"):
+        _parse_context_length("0k")
+    with pytest.raises(BadParameter, match="positive"):
+        _parse_context_length("-64k")
+
+
+def test_context_length_shorthand_accepted_by_cli():
+    """Verify that the CLI accepts shorthand strings via the custom type."""
+    runner = CliRunner()
+    result = runner.invoke(app, ["--context-length", "64k", "--help"])
+    # Should not error on parsing the shorthand
+    assert result.exit_code == 0

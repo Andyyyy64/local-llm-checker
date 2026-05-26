@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import sys
 from typing import Optional
 
+import click
 import typer
 from rich.console import Console
 
@@ -20,6 +22,48 @@ app = typer.Typer(
     invoke_without_command=True,
 )
 console = Console()
+
+
+def _parse_context_length(value: str) -> int:
+    """Parse a context length value supporting shorthand suffixes.
+
+    Accepts plain integers (``4096``), K-suffix (``64k`` → 65536),
+    and M-suffix (``1m`` → 1048576). Decimals are supported
+    (``1.5k`` → 1536). Case-insensitive.
+    """
+    v = value.strip().lower()
+    if not v:
+        raise click.BadParameter("Context length must not be empty")
+    if v[-1] in ("k", "m"):
+        try:
+            num = float(v[:-1])
+        except ValueError:
+            raise click.BadParameter(f"Invalid context length: {value!r}")
+        if num <= 0:
+            raise click.BadParameter(f"Context length must be positive: {value!r}")
+        multiplier = 1024 if v[-1] == "k" else 1024 * 1024
+        return int(num * multiplier)
+    try:
+        result = int(v)
+    except ValueError:
+        raise click.BadParameter(f"Invalid context length: {value!r}")
+    if result <= 0:
+        raise click.BadParameter(f"Context length must be positive: {value!r}")
+    return result
+
+
+class ContextLengthType(click.ParamType):
+    """Click parameter type that accepts integers and shorthand strings."""
+
+    name = "CONTEXT_LENGTH"
+
+    def convert(self, value, param, ctx):
+        if isinstance(value, int):
+            return value
+        return _parse_context_length(str(value))
+
+
+_CONTEXT_LENGTH = ContextLengthType()
 
 
 def _run_async(coro):
@@ -191,7 +235,9 @@ def main(
     ),
     top: int = typer.Option(10, "--top", "-n", help="Number of top models to show"),
     context_length: int = typer.Option(
-        4096, "--context-length", "-c", help="Context length for KV cache estimation"
+        4096, "--context-length", "-c",
+        help="Context length for KV cache estimation (e.g. 4096, 64k, 1m)",
+        click_type=_CONTEXT_LENGTH,
     ),
     quant: Optional[str] = typer.Option(
         None, "--quant", "-q", help="Filter by quantization type (e.g. Q4_K_M)"
@@ -383,7 +429,9 @@ def main(
 def plan(
     model_name: str = typer.Argument(..., help="Model name or HuggingFace repo ID"),
     context_length: int = typer.Option(
-        4096, "--context-length", "-c", help="Context length for KV cache estimation"
+        4096, "--context-length", "-c",
+        help="Context length for KV cache estimation (e.g. 4096, 64k, 1m)",
+        click_type=_CONTEXT_LENGTH,
     ),
     quant: Optional[str] = typer.Option(
         None, "--quant", "-q", help="Target quantization (default: Q4_K_M)"
@@ -438,7 +486,9 @@ def upgrade(
         help="GPUs to compare against (e.g. 'RTX 4090' 'RTX 5090' 'H100')",
     ),
     context_length: int = typer.Option(
-        8192, "--context-length", "-c", help="Context length for ranking"
+        8192, "--context-length", "-c",
+        help="Context length for ranking (e.g. 4096, 64k, 1m)",
+        click_type=_CONTEXT_LENGTH,
     ),
     top: int = typer.Option(3, "--top", "-n", help="Best-N models to compare per GPU"),
     profile: str = typer.Option("general", "--profile", help="Ranking profile"),
@@ -848,7 +898,9 @@ def run(
         None, help="Model to run (default: auto-pick best)"
     ),
     context_length: int = typer.Option(
-        4096, "--context-length", "-c", help="Context length"
+        4096, "--context-length", "-c",
+        help="Context length (e.g. 4096, 64k, 1m)",
+        click_type=_CONTEXT_LENGTH,
     ),
     quant: Optional[str] = typer.Option(
         None, "--quant", "-q", help="Quantization type"
