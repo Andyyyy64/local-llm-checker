@@ -53,6 +53,8 @@ Ranking JSON model rows include:
 | `speed_confidence` | `high`, `medium`, or `low` |
 | `speed_range_tok_per_sec` | Estimated lower/upper tok/s range, when available |
 | `speed_notes` | Short reasons for the confidence level |
+| `benchmark_source` | How the speed estimate was derived: `direct`, `variant`, `base_model`, `line_interp`, `self_reported`, or `none` |
+| `benchmark_confidence` | Confidence in the benchmark match, `0.0`–`1.0` |
 
 ## `hardware`
 
