@@ -8,6 +8,10 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from dbgpu import GPUSpecification
 
 from whichllm.constants import AMD_SHARED_MEMORY_APU_MARKERS, GPU_BANDWIDTH, _GiB
 from whichllm.hardware.types import GPUInfo
