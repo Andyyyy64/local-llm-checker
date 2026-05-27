@@ -19,6 +19,21 @@ from whichllm.models.types import GGUFVariant, ModelInfo
 
 console = Console()
 
+_PLAN_GPUS: list[tuple[str, int]] = [
+    ("RTX 4060", 8),
+    ("RTX 3060", 12),
+    ("RTX 4070", 12),
+    ("RTX 4080", 16),
+    ("RTX 4090", 24),
+    ("RX 7900 XTX", 24),
+    ("RTX 5090", 32),
+    ("A100 40GB", 40),
+    ("L40S", 48),
+    ("A100 80GB", 80),
+    ("H100", 80),
+    ("H200", 141),
+]
+
 
 def _format_bytes(b: int) -> str:
     """Format bytes as human-readable string."""
@@ -492,31 +507,17 @@ def display_plan(
 
     console.print(vram_table)
 
+    bpw = QUANT_BYTES_PER_WEIGHT.get(target_quant.upper(), 0.5625)
+    fake_size = int(model.parameter_count * bpw)
+    fake_variant = GGUFVariant(
+        filename="", quant_type=target_quant, file_size_bytes=fake_size
+    )
+
     # Ensure target_vram is set
     if target_vram == 0:
-        bpw = QUANT_BYTES_PER_WEIGHT.get(target_quant.upper(), 0.5625)
-        fake_size = int(model.parameter_count * bpw)
-        fake_variant = GGUFVariant(
-            filename="", quant_type=target_quant, file_size_bytes=fake_size
-        )
         target_vram = estimate_vram(model, fake_variant, context_length)
 
     # -- GPU compatibility table --
-    _PLAN_GPUS: list[tuple[str, int]] = [
-        ("RTX 4060", 8),
-        ("RTX 3060", 12),
-        ("RTX 4070", 12),
-        ("RTX 4080", 16),
-        ("RTX 4090", 24),
-        ("RX 7900 XTX", 24),
-        ("RTX 5090", 32),
-        ("A100 40GB", 40),
-        ("L40S", 48),
-        ("A100 80GB", 80),
-        ("H100", 80),
-        ("H200", 141),
-    ]
-
     gpu_table = Table(
         title=f"GPU Compatibility ({target_quant}, {_format_bytes(target_vram)} required)",
         show_lines=True,
@@ -525,12 +526,6 @@ def display_plan(
     gpu_table.add_column("VRAM", justify="right", width=8)
     gpu_table.add_column("Fit", justify="center", width=12)
     gpu_table.add_column("Est. Speed", justify="right", width=10)
-
-    bpw = QUANT_BYTES_PER_WEIGHT.get(target_quant.upper(), 0.5625)
-    fake_size = int(model.parameter_count * bpw)
-    fake_variant = GGUFVariant(
-        filename="", quant_type=target_quant, file_size_bytes=fake_size
-    )
 
     min_full_gpu = None
     for gpu_name, vram_gb in _PLAN_GPUS:
@@ -611,34 +606,14 @@ def display_plan_json(
         }
 
     target_vram = vram_by_quant.get(target_quant.upper(), {}).get("vram_bytes", 0)
-    if target_vram == 0:
-        bpw = QUANT_BYTES_PER_WEIGHT.get(target_quant.upper(), 0.5625)
-        fake_size = int(model.parameter_count * bpw)
-        fake_variant = GGUFVariant(
-            filename="", quant_type=target_quant, file_size_bytes=fake_size
-        )
-        target_vram = estimate_vram(model, fake_variant, context_length)
-
-    _PLAN_GPUS: list[tuple[str, int]] = [
-        ("RTX 4060", 8),
-        ("RTX 3060", 12),
-        ("RTX 4070", 12),
-        ("RTX 4080", 16),
-        ("RTX 4090", 24),
-        ("RX 7900 XTX", 24),
-        ("RTX 5090", 32),
-        ("A100 40GB", 40),
-        ("L40S", 48),
-        ("A100 80GB", 80),
-        ("H100", 80),
-        ("H200", 141),
-    ]
 
     bpw = QUANT_BYTES_PER_WEIGHT.get(target_quant.upper(), 0.5625)
     fake_size = int(model.parameter_count * bpw)
     fake_variant = GGUFVariant(
         filename="", quant_type=target_quant, file_size_bytes=fake_size
     )
+    if target_vram == 0:
+        target_vram = estimate_vram(model, fake_variant, context_length)
 
     gpus = []
     for gpu_name, vram_gb in _PLAN_GPUS:
@@ -827,7 +802,7 @@ def display_upgrade(
     table.add_row(
         current_row["name"],
         current_row["gpu"],
-        f"{current_row['vram_gb']:.0f} GB" if current_row["vram_gb"] else "—",
+        f"{current_row['vram_gb']:.0f} GB" if current_row["vram_gb"] is not None else "—",
         current_row["top_model"],
         current_row["top_quant"],
         f"{current_row['top_quality']:.1f}",
@@ -842,7 +817,7 @@ def display_upgrade(
         table.add_row(
             row["name"],
             row["gpu"],
-            f"{row['vram_gb']:.0f} GB" if row["vram_gb"] else "—",
+            f"{row['vram_gb']:.0f} GB" if row["vram_gb"] is not None else "—",
             row["top_model"],
             row["top_quant"],
             f"{row['top_quality']:.1f}",
