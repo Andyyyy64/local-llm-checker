@@ -4,11 +4,12 @@ import io
 
 import httpx
 
-LEADERBOARD_PARQUET_URL = (
-    "https://huggingface.co/api/datasets/open-llm-leaderboard/contents"
-    "/parquet/default/train/0.parquet"
+from whichllm.mirror import get_datasets_server_url, get_parquet_url
+
+LEADERBOARD_PARQUET_URL = get_parquet_url(
+    "open-llm-leaderboard/contents/parquet/default/train/0.parquet"
 )
-LEADERBOARD_ROWS_URL = "https://datasets-server.huggingface.co/rows"
+LEADERBOARD_ROWS_URL = get_datasets_server_url()
 LEADERBOARD_DATASET = "open-llm-leaderboard/contents"
 
 # --- Leaderboard normalization ---

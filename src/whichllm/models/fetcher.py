@@ -10,11 +10,12 @@ import statistics
 import httpx
 
 from whichllm.constants import QUANT_BYTES_PER_WEIGHT
+from whichllm.mirror import get_hf_base
 from whichllm.models.types import GGUFVariant, ModelInfo
 
 logger = logging.getLogger(__name__)
 
-HF_API_BASE = "https://huggingface.co/api"
+HF_API_BASE = get_hf_base()
 _GGUF_SPLIT_RE = re.compile(r"-(\d{5})-of-(\d{5})\.gguf$", re.IGNORECASE)
 _GENERAL_EVAL_KEYWORDS = (
     "mmlu",

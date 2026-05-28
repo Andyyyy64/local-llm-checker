@@ -15,6 +15,7 @@ from rich.text import Text
 from whichllm.engine.quantization import effective_quant_type, estimate_weight_bytes
 from whichllm.engine.types import CompatibilityResult
 from whichllm.hardware.types import HardwareInfo
+from whichllm.mirror import get_model_page_url
 from whichllm.models.types import GGUFVariant, ModelInfo
 
 console = Console()
@@ -315,7 +316,7 @@ def display_ranking(
         license_str = r.model.license or "—"
 
         model_link = Text(r.model.id, style="cyan")
-        model_link.stylize(f"link https://huggingface.co/{r.model.id}")
+        model_link.stylize(f"link {get_model_page_url(r.model.id)}")
 
         row_cells = [
             str(i),

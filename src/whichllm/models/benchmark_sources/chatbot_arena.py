@@ -4,8 +4,10 @@ import re
 
 import httpx
 
+from whichllm.mirror import get_datasets_server_url
+
 # --- Data source URLs ---
-ARENA_ROWS_URL = "https://datasets-server.huggingface.co/rows"
+ARENA_ROWS_URL = get_datasets_server_url()
 ARENA_DATASET = "mathewhe/chatbot-arena-elo"
 
 # --- Arena ELO normalization ---

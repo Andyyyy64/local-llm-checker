@@ -28,6 +28,10 @@ htmlcov/
 *.swo
 *~
 
+# Code intelligence
+.codegraph/
+.cursor/
+
 # OS
 .DS_Store
 Thumbs.db

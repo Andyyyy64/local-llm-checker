@@ -10,7 +10,7 @@
 
 Auto-detects your GPU/CPU/RAM and ranks the top models from HuggingFace that fit your system.
 
-[日本語版はこちら](docs/README.ja.md)
+[日本語版はこちら](docs/README.ja.md) | [中文版在这里](docs/README.zh-CN.md)
 
 ## Quick start
 

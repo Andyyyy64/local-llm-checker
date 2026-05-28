@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import sys
 from typing import Optional
 
@@ -238,10 +239,28 @@ def main(
     vram: Optional[float] = typer.Option(
         None, "--vram", help="Override VRAM in GB (requires --gpu)"
     ),
+    mirror: Optional[str] = typer.Option(
+        None,
+        "--mirror",
+        help="Mirror profile for restricted regions (e.g. 'cn' for China)",
+    ),
 ):
     """Detect hardware and recommend the best local LLMs."""
     if ctx.invoked_subcommand is not None:
         return
+
+    if mirror:
+        from whichllm.mirror import _MIRROR_PROFILES
+
+        if mirror not in _MIRROR_PROFILES:
+            console.print(
+                f"[red]Error:[/] Unknown mirror profile {mirror!r}. "
+                f"Available: {list(_MIRROR_PROFILES)}"
+            )
+            raise typer.Exit(code=1)
+        os.environ["WHICHHF_MIRROR"] = mirror
+        if not os.environ.get("HF_ENDPOINT"):
+            os.environ["HF_ENDPOINT"] = f"https://{_MIRROR_PROFILES[mirror]['hf']}"
 
     _validate_gpu_flags(cpu_only, gpu, vram)
     profile = _validate_profile(profile)
@@ -752,12 +771,36 @@ def _generate_chat_script(model, variant, context_length: int, cpu_only: bool) -
     """Generate a self-contained Python chat script for any model type."""
     if variant:
         n_gpu = 0 if cpu_only else -1
+        # Resolve mirror endpoint for the generated script
+        _mirror_env = os.environ.get("WHICHHF_MIRROR", "")
+        _mirror_endpoint = ""
+        if not os.environ.get("HF_ENDPOINT") and _mirror_env:
+            from whichllm.mirror import _MIRROR_PROFILES
+
+            _mp = _MIRROR_PROFILES.get(_mirror_env)
+            if _mp:
+                _mirror_endpoint = f'https://{_mp["hf"]}'
         return f'''\
-from huggingface_hub import hf_hub_download
+import os, re, sys
+from huggingface_hub import hf_hub_download, snapshot_download
 from llama_cpp import Llama
 
-print("Downloading {model.id} ({variant.quant_type})...")
-model_path = hf_hub_download(repo_id="{model.id}", filename="{variant.filename}")
+if not os.environ.get("HF_ENDPOINT") and os.environ.get("WHICHHF_MIRROR") == "{_mirror_env}":
+    os.environ["HF_ENDPOINT"] = "{_mirror_endpoint}"
+
+try:
+    print("Downloading {model.id} ({variant.quant_type})...")
+    _filename = "{variant.filename}"
+    if re.search(r'-\\d+-of-\\d+\\.gguf$', _filename):
+        _dir = os.path.dirname(_filename)
+        _pattern = (_dir + "/*") if _dir else "*.gguf"
+        _local_dir = snapshot_download(repo_id="{model.id}", allow_patterns=_pattern)
+        model_path = os.path.join(_local_dir, _filename)
+    else:
+        model_path = hf_hub_download(repo_id="{model.id}", filename=_filename)
+except Exception as e:
+    print(f"Error downloading model: {{e}}", file=sys.stderr)
+    sys.exit(1)
 print("Loading model...")
 llm = Llama(
     model_path=model_path,
