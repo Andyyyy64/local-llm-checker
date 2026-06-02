@@ -80,6 +80,14 @@ GPU_BANDWIDTH: dict[str, float] = {
     "T4": 320.0,
     "V100": 900.0,
     "P100": 732.0,
+    # NVIDIA Professional - Kepler (Vulkan-only, no CUDA in modern llama.cpp)
+    # Empirical tok/s measured on Ubuntu 24.04, llama.cpp b9297, Vulkan backend
+    # Source: Shaik, A. (2025). LegacyRAG. SSRN. https://papers.ssrn.com/sol3/papers.cfm?abstract_id=6750398
+    "Quadro K4200": 173.0,
+    "Quadro K5200": 192.3,
+    "Quadro K2200": 80.0,
+    "Quadro K620": 29.0,
+    "Quadro K420": 14.4,
     # AMD
     "RX 9060 XT": 320.0,
     "RX 7900 XTX": 960.0,
@@ -427,4 +435,14 @@ NVIDIA_COMPUTE_CAPABILITY: dict[str, tuple[int, int]] = {
     "T4": (7, 5),
     "V100": (7, 0),
     "P100": (6, 0),
+    # Kepler series - compute capability 3.x - Vulkan only, no CUDA in modern llama.cpp
+    "Quadro K6000": (3, 5),
+    "Quadro K5200": (3, 5),
+    "Quadro K4200": (3, 0),
+    "Quadro K2200": (3, 0),
+    "Quadro K620":  (3, 0),
+    "Quadro K420":  (3, 0),
+    "GTX 780":      (3, 5),
+    "GTX 770":      (3, 0),
+    "GTX 760":      (3, 0),
 }
